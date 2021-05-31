@@ -132,10 +132,14 @@ public:
 			setUsingNativeTitleBar(true);
 			setContentOwned(new MainComponent(), true);
 
+#if JUCE_IOS || JUCE_ANDROID
+            setFullScreen(true);
+#else
 			// TODO: ResizableCornerComponent not working!
 			setResizable(true, false);
 			setResizeLimits(594, 414, 2560, 1440);
 			centreWithSize(getWidth(), getHeight());
+#endif
 
 			setVisible(true);
 		}
