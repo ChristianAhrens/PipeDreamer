@@ -1199,6 +1199,9 @@ void MainComponent::DrawSpill(juce::Point<int> origin, juce::Graphics& g)
 				bigRec = juce::Rectangle<int>(origin.getX() - m_tileSize, origin.getY(), m_tileSize, m_tileSize);
 				smlRec = juce::Rectangle<int>(origin.getX() - halfTile, origin.getY() + qt, halfTile, halfTile);
 				break;
+                case Pipe::DIR_NONE:
+            default:
+                break;
 			}
 
 			g.setColour(juce::Colour(0x88008000)); // transparent green
