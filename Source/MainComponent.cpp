@@ -83,10 +83,12 @@ void MainComponent::resized()
 	m_fastForwardButtonRect = juce::Rectangle<float>(getLocalBounds().getWidth() / 18.0f, getLocalBounds().getHeight() / 1.1245f, 70.0f, 45.0f).toNearestInt();
 
 	// Position the hyperlink
-	m_hyperlink->setFont(GetFont(LABEL_VERSION), false /* do not resize */);
-	m_hyperlink->setBounds(	static_cast<int>(getLocalBounds().getWidth() / 1.8f), 
+	auto f = GetFont(LABEL_VERSION);
+	auto textWidth = juce::GlyphArrangement::getStringWidthInt(f, m_hyperlink->getButtonText());
+	m_hyperlink->setFont(f, false /* do not resize */);
+	m_hyperlink->setBounds(	getLocalBounds().getWidth() - (textWidth + 40), 
 							getLocalBounds().getHeight() - 50, 
-							static_cast<int>(getLocalBounds().getWidth() / 2.4545f), 
+							textWidth + 40, 
 							40);
 
 	// Resize the ScoreWindow, if any.
@@ -302,14 +304,14 @@ juce::Font MainComponent::GetFont(LabelID labelID) const
 	switch (labelID)
 	{
 		case LABEL_VERSION:
-			return juce::Font("consolas", (minDimension * 18.0f / 620.0f), juce::Font::plain);
+			return { juce::FontOptions("consolas", (minDimension * 18.0f / 620.0f), juce::Font::plain) };
 		case LABEL_SCORE:
-			return juce::Font("consolas", (minDimension * 32.0f / 620.0f), juce::Font::plain);
+			return { juce::FontOptions("consolas", (minDimension * 32.0f / 620.0f), juce::Font::plain) };
 		case LABEL_BSCORE:
-			return juce::Font("consolas", (minDimension * 32.0f / 620.0f), juce::Font::bold);
+			return { juce::FontOptions("consolas", (minDimension * 32.0f / 620.0f), juce::Font::bold) };
 	}
 
-	return juce::Font();
+	return { juce::FontOptions() };
 }
 
 void MainComponent::paint(juce::Graphics& g)
@@ -335,15 +337,14 @@ void MainComponent::paint(juce::Graphics& g)
 		juce::String versionString(JUCE_STRINGIFY(JUCE_APP_VERSION));
 		infoText << versionString;
 
-		juce::Rectangle<int> textRect(boardHStartPos, getLocalBounds().getHeight() - 50, static_cast<int>(getLocalBounds().getWidth() / 5.625f), 40);
+		auto f = GetFont(LABEL_VERSION);
+		auto textWidth = juce::GlyphArrangement::getStringWidthInt(f, infoText);
 
-		g.setFont(GetFont(LABEL_VERSION));
+		juce::Rectangle<int> textRect(boardHStartPos, getLocalBounds().getHeight() - 50, textWidth, 40);
+
+		g.setFont(f);
 		g.setColour(juce::Colours::grey);
 		g.drawText(infoText, textRect, juce::Justification::left, false);
-		//g.drawRect(textRect, 1);
-
-		//textRect = juce::Rectangle<int>(getLocalBounds().getWidth() - 380, getLocalBounds().getHeight() - 50, 350, 40);
-		//g.drawRect(textRect, 1);
 	}
 
 	// Draw bombs
