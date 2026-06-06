@@ -33,11 +33,10 @@ SOFTWARE.
 #include <JuceHeader.h>
 
 
-// ---- Forware declarations ----
+// ---- Forward declarations ----
 
 class Board;
 class Queue;
-class Randomizer;
 
 
 // ---- Helper types and constants ----
@@ -106,12 +105,18 @@ public:
 	static const int MIN_SCORE_TO_ADVANCE;
 
 	/**
+	 * Class constructor. Sets up the board, queue, audio, and application properties.
+	 */
+	Controller();
+
+	/**
 	 * Class destructor.
 	 */
 	virtual ~Controller();
 
 	/**
-	 * Returns the one and only instance of Controller. If it doesn't exist yet, it is created.
+	 * Returns the one and only instance of Controller.
+	 * The instance must have been created previously (owned by MainComponent).
 	 *
 	 * @return The Controller singleton object.
 	 */
@@ -217,11 +222,6 @@ public:
 
 protected:
 	/**
-	 * Class constructor.
-	 */
-	Controller();
-
-	/**
 	 * Class dedicated to playing sound effects on a dedicated thread.
 	 */
 	class AudioThread : public juce::Thread
@@ -309,12 +309,6 @@ private:
 	 * Level starts at 1, and as it increases, the amount of ooze pumped per frame also increases.
 	 */
 	int m_difficultyLevel = 1;
-
-	/**
-	 * Object which takes care of random number generation. 
-	 * Keep a pointer to the static object so that it can be deleted cleanly on shutdown. 
-	 */
-	Randomizer* m_randomizer;
 
 	/**
 	 * Score for each individual round is kept by the Board. The cumulative score

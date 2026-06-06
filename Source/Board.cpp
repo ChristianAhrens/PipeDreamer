@@ -65,15 +65,20 @@ void Board::Reset()
 	m_scoreUntilFreeBomb = 0;
 	m_numBombs = MAX_NUM_BOMBS;
 
+	m_reverseMap.clear();
+
 	// Fill the board with (empty) tiles.
 	for (int i = 0; i < GetNumCols(); i++)
 	{
 		for (int j = 0; j < GetNumRows(); j++)
 		{
-			if (m_tileMap.count(Coord(i, j)) > 0)
-				delete m_tileMap[Coord(i, j)];
+			Coord c(i, j);
+			if (m_tileMap.count(c) > 0)
+				delete m_tileMap[c];
 
-			m_tileMap[Coord(i, j)] = TilePiece::CreateTile();
+			TilePiece* tile = TilePiece::CreateTile();
+			m_tileMap[c] = tile;
+			m_reverseMap[tile] = c;
 		}
 	}
 
@@ -104,8 +109,12 @@ void Board::ReplaceTile(int col, int row, TilePiece::Type t)
 	// so that an explosion graphic can be drawn over it.
 	bool explode = (m_tileMap[c]->GetType() != TilePiece::TYPE_NONE);
 
+	m_reverseMap.erase(m_tileMap[c]);
 	delete m_tileMap[c];
-	m_tileMap[c] = TilePiece::CreateTile(t);
+
+	TilePiece* newTile = TilePiece::CreateTile(t);
+	m_tileMap[c] = newTile;
+	m_reverseMap[newTile] = c;
 
 	if (explode)
 	{
@@ -180,48 +189,32 @@ bool Board::Pump(float amount)
 	return ret;
 }
 
-TilePiece* Board::FindNeighbor(TilePiece* tile, Pipe::Direction dir) /*const*/
+TilePiece* Board::FindNeighbor(TilePiece* tile, Pipe::Direction dir) const
 {
-	TilePiece* ret(nullptr);
+	auto it = m_reverseMap.find(tile);
+	if (it == m_reverseMap.end())
+		return nullptr;
 
-	// Get the coordinates of the passed pipe.
-	Coord coord;
-	for (auto it = m_tileMap.begin(); it != m_tileMap.end(); ++it)
-	{
-		if (it->second == tile)
-		{
-			coord = it->first;
-			break;
-		}
-	}
+	Coord coord = it->second;
 
 	// Advance coord in the desired direction
 	switch (dir)
 	{
-		case Pipe::DIR_N:
-			coord.second -= 1;
-			break;
-		case Pipe::DIR_S:
-			coord.second += 1;
-			break;
-		case Pipe::DIR_E:
-			coord.first += 1;
-			break;
-		case Pipe::DIR_W:
-			coord.first -= 1;
-			break;
-		default:
-			break;
+		case Pipe::DIR_N: coord.second -= 1; break;
+		case Pipe::DIR_S: coord.second += 1; break;
+		case Pipe::DIR_E: coord.first  += 1; break;
+		case Pipe::DIR_W: coord.first  -= 1; break;
+		default: break;
 	}
 
 	// Check bounds
 	if ((coord.first >= 0) && (coord.first < m_numCols) &&
 		(coord.second >= 0) && (coord.second < m_numRows))
 	{
-		ret = m_tileMap[coord];
+		return m_tileMap.at(coord);
 	}
 
-	return ret;
+	return nullptr;
 }
 
 int Board::GetScoreValue() const
@@ -232,8 +225,8 @@ int Board::GetScoreValue() const
 void Board::CreateRandomStart()
 {
 	// Determine a random position on the board.
-	Randomizer* rand = Randomizer::GetInstance();
-	int startPosInt = rand->GetWithinRange(0, (m_numCols * m_numRows) - 1);
+	Randomizer& rand = Randomizer::GetInstance();
+	int startPosInt = rand.GetWithinRange(0, (m_numCols * m_numRows) - 1);
 	Coord startCoord(startPosInt % m_numCols, static_cast<int>(startPosInt / m_numCols));
 
 	TilePiece::Type starterType(TilePiece::TYPE_NONE);
@@ -241,7 +234,7 @@ void Board::CreateRandomStart()
 	while (search)
 	{
 		// Get a random starter tile
-		starterType = static_cast<TilePiece::Type>(rand->GetWithinRange(TilePiece::TYPE_START_N, TilePiece::TYPE_START_W));
+		starterType = static_cast<TilePiece::Type>(rand.GetWithinRange(TilePiece::TYPE_START_N, TilePiece::TYPE_START_W));
 
 		// Keep trying with random starter tiles until we find one which is not facing the wall.
 		search = (((startCoord.first <= 1) && (starterType == TilePiece::TYPE_START_W)) ||

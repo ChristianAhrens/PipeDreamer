@@ -47,11 +47,12 @@ public:
 	~Randomizer();
 
 	/**
-	 * Returns the one and only instance of Randomizer. If it doesn't exist yet, it is created.
+	 * Returns the one and only instance of Randomizer (Meyers singleton).
+	 * The instance is created on first call and lives until program exit.
 	 *
-	 * @return The Randomizer singleton object.
+	 * @return Reference to the Randomizer singleton.
 	 */
-	static Randomizer* GetInstance();
+	static Randomizer& GetInstance();
 
 	/**
 	 * Generate a random number x such that: min <= x <= max.
@@ -63,11 +64,6 @@ public:
 	int GetWithinRange(int min, int max);
 
 protected:
-	/**
-	 * The one and only instance of Randomizer.
-	 */
-	static Randomizer* m_singleton;
-
 	typedef std::pair<int, int> Range;
 	typedef std::uniform_int_distribution<int> Distro;
 

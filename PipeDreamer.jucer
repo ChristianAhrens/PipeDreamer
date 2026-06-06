@@ -36,6 +36,8 @@
       <FILE id="IDzCBV" name="TilePiece.cpp" compile="1" resource="0" file="Source/TilePiece.cpp"/>
       <FILE id="TILJZm" name="TilePiece.h" compile="0" resource="0" file="Source/TilePiece.h"/>
       <FILE id="LyCnst" name="LayoutConstants.h" compile="0" resource="0" file="Source/LayoutConstants.h"/>
+      <FILE id="GRdrH" name="GameRenderer.h" compile="0" resource="0" file="Source/GameRenderer.h"/>
+      <FILE id="GRdrC" name="GameRenderer.cpp" compile="1" resource="0" file="Source/GameRenderer.cpp"/>
       <FILE id="OU2AVU" name="Main.cpp" compile="1" resource="0" file="Source/Main.cpp"/>
       <FILE id="cZECLC" name="MainComponent.cpp" compile="1" resource="0"
             file="Source/MainComponent.cpp"/>

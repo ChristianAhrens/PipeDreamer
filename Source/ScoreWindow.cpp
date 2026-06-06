@@ -31,7 +31,7 @@ SOFTWARE.
 #include <JuceHeader.h>
 #include "LayoutConstants.h"
 #include "ScoreWindow.h"
-#include "MainComponent.h"
+#include "GameRenderer.h"
 
 
 // ---- Helper types and constants ----
@@ -84,7 +84,7 @@ void ScoreWindow::paint(juce::Graphics& g)
 	}
 
 	// Background colour (whole window)
-	g.fillAll(MainComponent::GetTileColourForLevel(m_details.level));
+	g.fillAll(GameRenderer::GetTileColourForLevel(m_details.level));
 
 	// Messagebox background
 	g.setColour(juce::Colour(27, 27, 27));

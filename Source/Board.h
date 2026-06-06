@@ -124,7 +124,15 @@ public:
 	 */
 	void CreateRandomStart();
 
-	TilePiece* FindNeighbor(TilePiece* p, Pipe::Direction d) /*const*/; // TODO: const deadlock
+	/**
+	 * Find the tile adjacent to the given tile in the specified direction.
+	 * Uses a reverse lookup map for O(1) performance.
+	 *
+	 * @param tile  Tile whose neighbor is sought.
+	 * @param dir   Direction in which to look.
+	 * @return      Adjacent tile, or nullptr if out of bounds.
+	 */
+	TilePiece* FindNeighbor(TilePiece* tile, Pipe::Direction dir) const;
 
 	/**
 	 * Get the score gained so far in this round.
@@ -174,6 +182,9 @@ private:
 
 	typedef std::pair<int, int> Coord;
 	std::map<Coord, TilePiece*> m_tileMap;
+
+	/** Reverse lookup: maps each tile pointer back to its grid coordinate. */
+	std::map<TilePiece*, Coord> m_reverseMap;
 
 	int m_score;
 

@@ -31,7 +31,6 @@ SOFTWARE.
 #include "Controller.h"
 #include "Board.h"
 #include "Queue.h"
-#include "Randomizer.h"
 
 
 // ---- Helper types and constants ----
@@ -58,12 +57,7 @@ Controller::Controller()
 	// Create queue
 	m_queue.reset(new Queue(5));
 
-	// Initialize randomizer and store pointer
-	// to ensure it is deleted on shutdown.
-	m_randomizer = Randomizer::GetInstance();
-
-
-	// Initialize max score 
+	// Initialize max score
 	InitApplicationProperties();
 
 	// Init sounds.
@@ -74,17 +68,12 @@ Controller::~Controller()
 {
 	ShutdownAudio();
 
-	delete m_randomizer;
-
 	m_singleton = nullptr;
 }
 
 Controller* Controller::GetInstance()
 {
-	if (m_singleton == nullptr)
-	{
-		m_singleton = new Controller();
-	}
+	jassert(m_singleton != nullptr);
 	return m_singleton;
 }
 

@@ -179,6 +179,12 @@ namespace Layout
     static constexpr float FONT_SCORE_PT    = 32.0f;
 
 
+    // ---- Timer --------------------------------------------------------------
+
+    /** GUI refresh interval in milliseconds. */
+    static constexpr int GUI_REFRESH_RATE   = 60;
+
+
     // ---- Window size constraints --------------------------------------------
 
     /** Default initial window width on desktop, in pixels. */

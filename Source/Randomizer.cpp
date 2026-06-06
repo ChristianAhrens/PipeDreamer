@@ -29,42 +29,27 @@ SOFTWARE.
 
 
 #include "Randomizer.h"
-#include <cassert>
 
 
 // ---- Helper types and constants ----
-
-/**
- * Singleton initialization.
- */
-Randomizer* Randomizer::m_singleton = nullptr;
-
 
 // --- Randomizer class implementation ---
 
 Randomizer::Randomizer()
 {
-	assert(m_singleton == nullptr);
-	m_singleton = this;
-
 	// Seed randomizer
 	std::random_device rd;
 	m_mt = std::mt19937(rd());
-
 }
 
 Randomizer::~Randomizer()
 {
-	m_singleton = nullptr;
 }
 
-Randomizer* Randomizer::GetInstance()
+Randomizer& Randomizer::GetInstance()
 {
-	if (m_singleton == nullptr)
-	{
-		m_singleton = new Randomizer();
-	}
-	return m_singleton;
+	static Randomizer instance;
+	return instance;
 }
 
 int Randomizer::GetWithinRange(int min, int max)

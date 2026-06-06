@@ -31,7 +31,6 @@ SOFTWARE.
 #include <JuceHeader.h>
 #include "LayoutConstants.h"
 #include "MainComponent.h"
-#include "Controller.h"
 
 
 /**
@@ -85,20 +84,17 @@ public:
 		// TODO: think about useful commandline options
 		// i.e.: starting level.
 
-		// Store pointers to the MainWindow and Controller so we can delete them on shutdown.
 		m_mainWindow.reset(new MainWindow(getApplicationName()));
-		m_controller = Controller::GetInstance();
 	}
 
 	/**
-	 * Called after the event-dispatch loop has been terminated, 
+	 * Called after the event-dispatch loop has been terminated,
 	 * to allow the application to clear up before exiting.
 	 */
 	void shutdown() override
 	{
-		// This deletes the unique_ptr.
+		// This deletes the unique_ptr, which destroys MainComponent and its owned Controller.
 		m_mainWindow = nullptr;
-		delete m_controller;
 	}
 
 	/**
@@ -163,11 +159,6 @@ private:
 	 * Pointer to MainWindow instance.
 	 */
 	std::unique_ptr<MainWindow> m_mainWindow;
-
-	/**
-	 * Pointer to Controller singleton.
-	 */
-	Controller* m_controller;
 };
 
 /**
