@@ -72,8 +72,9 @@ protected:
 	typedef std::uniform_int_distribution<int> Distro;
 
 	/**
-	 * Commonly used distributions are cached here.
-	 * TODO: explain better.
+	 * Cache of uniform integer distributions keyed by their (min, max) range.
+	 * Distributions are constructed on first use and reused on subsequent calls,
+	 * since constructing a distribution object is more expensive than sampling from one.
 	 */
 	std::map<Range, Distro> m_distroMap;
 

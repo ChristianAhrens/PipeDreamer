@@ -77,10 +77,26 @@ public:
 	 */
 	TilePiece* GetTile(int col, int row) const;
 
+	/**
+	 * Replace the tile at (col, row) with a new tile of type t.
+	 * If the tile being replaced was a non-empty pipe, an explosion animation
+	 * is triggered on the replacement tile.
+	 * @param col Column index of the tile to replace.
+	 * @param row Row index of the tile to replace.
+	 * @param t   Type of the replacement tile.
+	 */
 	void ReplaceTile(int col, int row, TilePiece::Type t);
 
+	/**
+	 * Get the number of rows in the board grid.
+	 * @return Number of rows.
+	 */
 	int GetNumRows() const;
 
+	/**
+	 * Get the number of columns in the board grid.
+	 * @return Number of columns.
+	 */
 	int GetNumCols() const;
 
 	/**
@@ -101,6 +117,11 @@ public:
 	 */
 	void Reset();
 
+	/**
+	 * Place a randomly chosen starter tile at a randomly chosen board position.
+	 * The position and orientation are constrained so the starter's opening
+	 * does not face a wall or a near-edge cell.
+	 */
 	void CreateRandomStart();
 
 	TilePiece* FindNeighbor(TilePiece* p, Pipe::Direction d) /*const*/; // TODO: const deadlock

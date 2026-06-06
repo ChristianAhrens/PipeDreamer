@@ -29,7 +29,7 @@ SOFTWARE.
 
 
 #include "Randomizer.h"
-#include <assert.h>
+#include <cassert>
 
 
 // ---- Helper types and constants ----

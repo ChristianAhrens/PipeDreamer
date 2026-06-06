@@ -1,0 +1,89 @@
+# Doxyfile for PipeDreamer
+# Run: doxygen Doxyfile
+# Output is written to Docs/html/index.html
+
+# ---------------------------------------------------------------------------
+# Project identity
+# ---------------------------------------------------------------------------
+PROJECT_NAME           = "PipeDreamer"
+PROJECT_NUMBER         = 0.4.0
+PROJECT_BRIEF          = "A cross-platform Pipe Mania / Pipe Dream clone built with JUCE"
+OUTPUT_DIRECTORY       = Docs
+
+# ---------------------------------------------------------------------------
+# Input
+# ---------------------------------------------------------------------------
+INPUT                  = Source
+RECURSIVE              = NO
+FILE_PATTERNS          = *.h *.cpp
+EXCLUDE_PATTERNS       = */JuceLibraryCode/* */submodules/*
+
+# ---------------------------------------------------------------------------
+# Extraction behaviour
+# ---------------------------------------------------------------------------
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = YES
+EXTRACT_STATIC         = YES
+EXTRACT_ANON_NSPACES   = YES
+HIDE_UNDOC_MEMBERS     = NO
+HIDE_UNDOC_CLASSES     = NO
+
+# ---------------------------------------------------------------------------
+# Output formats
+# ---------------------------------------------------------------------------
+GENERATE_HTML          = YES
+HTML_OUTPUT            = html
+GENERATE_LATEX         = NO
+GENERATE_MAN           = NO
+GENERATE_RTF           = NO
+GENERATE_XML           = NO
+
+# ---------------------------------------------------------------------------
+# HTML look and feel
+# ---------------------------------------------------------------------------
+HTML_DYNAMIC_SECTIONS  = YES
+GENERATE_TREEVIEW      = YES
+TREEVIEW_WIDTH         = 260
+DISABLE_INDEX          = NO
+
+# ---------------------------------------------------------------------------
+# Source browser
+# ---------------------------------------------------------------------------
+SOURCE_BROWSER         = YES
+INLINE_SOURCES         = NO
+REFERENCED_BY_RELATION = YES
+REFERENCES_RELATION    = YES
+
+# ---------------------------------------------------------------------------
+# Diagrams (requires Graphviz dot; set HAVE_DOT = NO if not available)
+# ---------------------------------------------------------------------------
+HAVE_DOT               = NO
+CLASS_DIAGRAMS         = YES
+COLLABORATION_GRAPH    = YES
+INCLUDE_GRAPH          = YES
+
+# ---------------------------------------------------------------------------
+# Preprocessing — let Doxygen see JUCE macros without expanding them
+# ---------------------------------------------------------------------------
+ENABLE_PREPROCESSING   = YES
+MACRO_EXPANSION        = NO
+EXPAND_ONLY_PREDEF     = NO
+PREDEFINED             = JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(x)= \
+                         JUCE_DECLARE_NON_COPYABLE(x)=
+
+# ---------------------------------------------------------------------------
+# Warnings
+# ---------------------------------------------------------------------------
+WARN_IF_UNDOCUMENTED   = YES
+WARN_IF_DOC_ERROR      = YES
+WARN_NO_PARAMDOC       = YES
+WARN_LOGFILE           =
+
+# ---------------------------------------------------------------------------
+# Miscellaneous
+# ---------------------------------------------------------------------------
+QUIET                  = NO
+WARNINGS               = YES
+OPTIMIZE_OUTPUT_FOR_C  = NO
+MARKDOWN_SUPPORT       = YES
+AUTOLINK_SUPPORT       = YES

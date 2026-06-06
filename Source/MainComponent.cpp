@@ -29,6 +29,7 @@ SOFTWARE.
 
 
 #include "MainComponent.h"
+#include "LayoutConstants.h"
 #include "TilePiece.h"
 #include "Board.h"
 #include "Queue.h"
@@ -54,7 +55,7 @@ MainComponent::MainComponent()
 	m_hyperlink->setColour(juce::HyperlinkButton::textColourId, juce::Colours::grey);
 	addAndMakeVisible(m_hyperlink.get());
 
-	setSize(900, 620);
+	setSize(Layout::WINDOW_DEFAULT_W, Layout::WINDOW_DEFAULT_H);
 
 	// Reset the countdown to the start of the round
 	// (before ooze starts pumping out)
@@ -77,10 +78,10 @@ int MainComponent::GetTileSize() const
 void MainComponent::resized()
 {
 	// Scale tiles according to the game window's both width and height.
-	int minDimension = std::min<int>(getLocalBounds().getWidth(), static_cast<int>(getLocalBounds().getHeight() * 1.4516f));
-	m_tileSize = static_cast<int>(minDimension / 13.0f);
+	int minDimension = std::min<int>(getLocalBounds().getWidth(), static_cast<int>(getLocalBounds().getHeight() * Layout::ASPECT_RATIO));
+	m_tileSize = static_cast<int>(minDimension / Layout::TILE_SIZE_DIVISOR);
 
-	m_fastForwardButtonRect = juce::Rectangle<float>(getLocalBounds().getWidth() / 18.0f, getLocalBounds().getHeight() / 1.1245f, 70.0f, 45.0f).toNearestInt();
+	m_fastForwardButtonRect = juce::Rectangle<float>(getLocalBounds().getWidth() / Layout::FF_BUTTON_H_DIVISOR, getLocalBounds().getHeight() / Layout::FF_BUTTON_V_DIVISOR, Layout::FF_BUTTON_W, Layout::FF_BUTTON_H).toNearestInt();
 
 	// Position the hyperlink
 	auto f = GetFont(LABEL_VERSION);
@@ -177,8 +178,8 @@ void MainComponent::mouseDown(const juce::MouseEvent& event)
 		{
 			Board* board(controller->GetBoard());
 			bool replace(false);
-			int boardHStartPos = static_cast<int>(getLocalBounds().getWidth() / 5.114f);
-			int boardVStartPos = static_cast<int>(getLocalBounds().getHeight() / 7.75f);
+			int boardHStartPos = static_cast<int>(getLocalBounds().getWidth() / Layout::BOARD_H_DIVISOR);
+			int boardVStartPos = static_cast<int>(getLocalBounds().getHeight() / Layout::BOARD_V_DIVISOR);
 
 			for (int i = 0; (i < board->GetNumCols()) && !replace; i++)
 			{
@@ -300,15 +301,15 @@ juce::Colour MainComponent::GetTileColourForLevel(int difficultyLevel)
 juce::Font MainComponent::GetFont(LabelID labelID) const
 {
 	// Scale the font according to the game window's both width and height.
-	int minDimension = std::min<int>(static_cast<int>(getLocalBounds().getWidth() / 1.4516f), getLocalBounds().getHeight());
+	int minDimension = std::min<int>(static_cast<int>(getLocalBounds().getWidth() / Layout::ASPECT_RATIO), getLocalBounds().getHeight());
 	switch (labelID)
 	{
 		case LABEL_VERSION:
-			return { juce::FontOptions("consolas", (minDimension * 18.0f / 620.0f), juce::Font::plain) };
+			return { juce::FontOptions("consolas", (minDimension * Layout::FONT_VERSION_PT / Layout::FONT_REF_HEIGHT), juce::Font::plain) };
 		case LABEL_SCORE:
-			return { juce::FontOptions("consolas", (minDimension * 32.0f / 620.0f), juce::Font::plain) };
+			return { juce::FontOptions("consolas", (minDimension * Layout::FONT_SCORE_PT / Layout::FONT_REF_HEIGHT), juce::Font::plain) };
 		case LABEL_BSCORE:
-			return { juce::FontOptions("consolas", (minDimension * 32.0f / 620.0f), juce::Font::bold) };
+			return { juce::FontOptions("consolas", (minDimension * Layout::FONT_SCORE_PT / Layout::FONT_REF_HEIGHT), juce::Font::bold) };
 	}
 
 	return { juce::FontOptions() };
@@ -319,14 +320,14 @@ void MainComponent::paint(juce::Graphics& g)
 	Board* board(Controller::GetInstance()->GetBoard());
 	Queue* queue(Controller::GetInstance()->GetQueue());
 
-	int boardHStartPos = static_cast<int>(getLocalBounds().getWidth() / 5.114f);
-	int boardVStartPos = static_cast<int>(getLocalBounds().getHeight() / 7.75f);
+	int boardHStartPos = static_cast<int>(getLocalBounds().getWidth() / Layout::BOARD_H_DIVISOR);
+	int boardVStartPos = static_cast<int>(getLocalBounds().getHeight() / Layout::BOARD_V_DIVISOR);
 
 	// Background colour
 	g.fillAll(juce::Colour(67, 67, 67));
 
 	// Draw countdown to ooze.
-	DrawOozeMeter(juce::Point<int>(static_cast<int>(getLocalBounds().getWidth() / 12.05f), 30), g);
+	DrawOozeMeter(juce::Point<int>(static_cast<int>(getLocalBounds().getWidth() / Layout::OOZE_METER_H_DIVISOR), 30), g);
 
 	// Draw current level number and score
 	DrawLevelAndScore(g);
@@ -348,14 +349,14 @@ void MainComponent::paint(juce::Graphics& g)
 	}
 
 	// Draw bombs
-	DrawBombs(juce::Point<int>(static_cast<int>(getLocalBounds().getWidth() / 1.6749f), 20), g);
+	DrawBombs(juce::Point<int>(static_cast<int>(getLocalBounds().getWidth() / Layout::BOMBS_H_DIVISOR), 20), g);
 
 	// Draw button to accelerate game speed.
 	DrawFastForwardButton(g);
 
 	// Draw tile queue: queueVStartPos is the origin ob the bottomest tile in the queue
-	int queueVStartPos = static_cast<int>(getLocalBounds().getHeight() / 1.3757f);
-	int queueHStartPos = static_cast<int>(getLocalBounds().getWidth() / 18);
+	int queueVStartPos = static_cast<int>(getLocalBounds().getHeight() / Layout::QUEUE_V_DIVISOR);
+	int queueHStartPos = static_cast<int>(getLocalBounds().getWidth() / Layout::QUEUE_H_DIVISOR);
 	for (int i = 0; i < queue->GetSize(); i++)
 	{
 		// Pipe shape
@@ -409,13 +410,13 @@ void MainComponent::DrawLevelAndScore(juce::Graphics& g)
 	g.setColour(juce::Colours::grey);
 
 	int halfTile = m_tileSize / 2;
-	juce::Rectangle<int> textRect(	static_cast<int>(getLocalBounds().getWidth() / 5.114f), 20, 
-									static_cast<int>(getLocalBounds().getWidth() / 9.7826f), halfTile);
+	juce::Rectangle<int> textRect(	static_cast<int>(getLocalBounds().getWidth() / Layout::LEVEL_LABEL_H_DIVISOR), Layout::SCORE_LABEL_V_OFFSET,
+									static_cast<int>(getLocalBounds().getWidth() / Layout::SCORE_LABEL_WIDTH_DIVISOR), halfTile);
 	g.drawText("Level:", textRect, juce::Justification::left, false);
 	// g.drawRect(textRect, 1.0f); // frame
 
-	textRect = juce::Rectangle<int>(	static_cast<int>(getLocalBounds().getWidth() / 2.8421f), 20, 
-										static_cast<int>(getLocalBounds().getWidth() / 9.7826f), halfTile);
+	textRect = juce::Rectangle<int>(	static_cast<int>(getLocalBounds().getWidth() / Layout::SCORE_LABEL_H_DIVISOR), Layout::SCORE_LABEL_V_OFFSET,
+										static_cast<int>(getLocalBounds().getWidth() / Layout::SCORE_LABEL_WIDTH_DIVISOR), halfTile);
 	g.drawText("Score:", textRect, juce::Justification::left, false);
 	// g.drawRect(textRect, 1.0f); // frame
 
@@ -425,15 +426,15 @@ void MainComponent::DrawLevelAndScore(juce::Graphics& g)
 		g.setColour(juce::Colours::yellow);
 		g.setFont(GetFont(LABEL_BSCORE));
 	}
-	textRect = juce::Rectangle<int>(static_cast<int>(getLocalBounds().getWidth() / 2.1880f), 20, 
-									static_cast<int>(getLocalBounds().getWidth() / 5.625f), halfTile);
+	textRect = juce::Rectangle<int>(static_cast<int>(getLocalBounds().getWidth() / Layout::SCORE_VALUE_H_DIVISOR), Layout::SCORE_LABEL_V_OFFSET,
+									static_cast<int>(getLocalBounds().getWidth() / Layout::SCORE_VALUE_WIDTH_DIVISOR), halfTile);
 	g.drawText(juce::String(playerScore), textRect, juce::Justification::left, false);
 	// g.drawRect(textRect, 1.0f); // frame
 
 	// Show difficulty level number in this level's tile color.
 	g.setColour(GetTileColourForLevel(controller->GetDifficultyLevel()));
-	textRect = juce::Rectangle<int>(static_cast<int>(getLocalBounds().getWidth() / 3.375f), 20, 
-									static_cast<int>(getLocalBounds().getWidth() / 17.31f), halfTile);
+	textRect = juce::Rectangle<int>(static_cast<int>(getLocalBounds().getWidth() / Layout::LEVEL_VALUE_H_DIVISOR), Layout::SCORE_LABEL_V_OFFSET,
+									static_cast<int>(getLocalBounds().getWidth() / Layout::LEVEL_VALUE_WIDTH_DIVISOR), halfTile);
 	g.drawText(juce::String(controller->GetDifficultyLevel()), textRect, juce::Justification::left, false);
 	// g.drawRect(textRect, 1.0f); // frame
 }
@@ -450,7 +451,7 @@ void MainComponent::DrawTile(TilePiece* tile, juce::Point<int> origin, juce::Gra
 			g.fillRect(origin.getX(), origin.getY(), m_tileSize, m_tileSize);
 
 			juce::Line<int> line;
-			float pipeThickness = m_tileSize / 3.5f;
+			float pipeThickness = m_tileSize / Layout::PIPE_THICKNESS_DIVISOR;
 			g.setColour(juce::Colours::black);
 
 			// Ellipse rect used to have nice rounded corners in the elbow pipes.
@@ -1028,8 +1029,8 @@ void MainComponent::DrawCrossSecondWay(TilePiece* tile, juce::Point<int> origin,
 
 		juce::Line<int> line;
 		int halfTile = m_tileSize / 2;
-		float pipeThickness = m_tileSize / 3.5f;
-		int pipeHalfThickness = static_cast<int>(m_tileSize / 6.0f);
+		float pipeThickness = m_tileSize / Layout::PIPE_THICKNESS_DIVISOR;
+		int pipeHalfThickness = static_cast<int>(m_tileSize / Layout::PIPE_HALF_THICKNESS_DIVISOR);
 		g.setColour(juce::Colours::black);
 
 		// Draw pipe first
@@ -1053,7 +1054,7 @@ void MainComponent::DrawCrossSecondWay(TilePiece* tile, juce::Point<int> origin,
 
 		// Little lines along the pipe, which make the separation between horizontal and vertical 
 		// components of the cross-pipe more visually obvious.
-		float littleLineThickness = (m_tileSize * 5.0f) / 70.0f;
+		float littleLineThickness = (m_tileSize * Layout::CROSS_SEP_NUM) / Layout::CROSS_SEP_DEN;
 		g.setColour(GetTileColourForLevel(Controller::GetInstance()->GetDifficultyLevel()));
 		if (crossTile->GetBackgroundWay() == Cross::WAY_HORIZONTAL)
 		{
@@ -1218,15 +1219,14 @@ void MainComponent::DrawOozeMeter(juce::Point<int> origin, juce::Graphics& g)
 	Board* board(Controller::GetInstance()->GetBoard());
 
 	// Draw empty vial (background)
-	//static constexpr int vialHeight = 118;
-	int vialHeight = static_cast<int>(getLocalBounds().getHeight() / 5.2542f);
-	juce::Rectangle<int> vialRect(origin.getX(), origin.getY(), 22, vialHeight);
+	int vialHeight = static_cast<int>(getLocalBounds().getHeight() / Layout::OOZE_METER_HEIGHT_DIVISOR);
+	juce::Rectangle<int> vialRect(origin.getX(), origin.getY(), Layout::OOZE_VIAL_WIDTH, vialHeight);
 	g.setColour(juce::Colours::black);
 	g.fillRect(vialRect);
 
 	// Ooze inside the vial.
 	g.setColour(juce::Colours::limegreen);
-	int oozeMaxHeight = vialHeight - 6;
+	int oozeMaxHeight = vialHeight - (Layout::OOZE_VIAL_PADDING * 2);
 	int oozeHeight;
 	if (m_countDown > 0)
 	{
@@ -1244,7 +1244,7 @@ void MainComponent::DrawOozeMeter(juce::Point<int> origin, juce::Graphics& g)
 		g.setColour(juce::Colours::yellow);
 		oozeHeight = oozeMaxHeight;
 	}
-	g.fillRect(juce::Rectangle<int>(origin.getX() + 3, origin.getY() + 3 + oozeMaxHeight - oozeHeight, 16, oozeHeight));
+	g.fillRect(juce::Rectangle<int>(origin.getX() + Layout::OOZE_VIAL_PADDING, origin.getY() + Layout::OOZE_VIAL_PADDING + oozeMaxHeight - oozeHeight, Layout::OOZE_FILL_WIDTH, oozeHeight));
 
 	// Vial outline and markings.
 	g.setColour(juce::Colours::black);
@@ -1286,12 +1286,12 @@ void MainComponent::DrawBombs(juce::Point<int> p, juce::Graphics& g)
 
 void MainComponent::DrawFastForwardButton(juce::Graphics& g)
 {
-	float radius = 13;
-	juce::Point<float> origin(m_fastForwardButtonRect.getX() + 24.0f, m_fastForwardButtonRect.getY() + 23.0f);
+	float radius = Layout::FF_ICON_RADIUS;
+	juce::Point<float> origin(m_fastForwardButtonRect.getX() + Layout::FF_ICON_CENTER_X, m_fastForwardButtonRect.getY() + Layout::FF_ICON_CENTER_Y);
 
 	juce::Path ffwdPath;
-	ffwdPath.addPolygon(juce::Point<float>(static_cast<float>(origin.getX()), static_cast<float>(origin.getY())), 3, radius, -0.52f);
-	ffwdPath.addPolygon(juce::Point<float>(origin.getX() + 19.0f, static_cast<float>(origin.getY())), 3, radius, -0.52f);
+	ffwdPath.addPolygon(juce::Point<float>(static_cast<float>(origin.getX()), static_cast<float>(origin.getY())), 3, radius, Layout::FF_ICON_ROTATION);
+	ffwdPath.addPolygon(juce::Point<float>(origin.getX() + Layout::FF_ICON_TRIANGLE_SPACING, static_cast<float>(origin.getY())), 3, radius, Layout::FF_ICON_ROTATION);
 
 	float thickness = 1.5f;
 	juce::Colour iconColour(juce::Colours::grey);

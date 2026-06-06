@@ -29,6 +29,7 @@ SOFTWARE.
 
 
 #include <JuceHeader.h>
+#include "LayoutConstants.h"
 #include "MainComponent.h"
 #include "Controller.h"
 
@@ -137,7 +138,7 @@ public:
 #else
 			// TODO: ResizableCornerComponent not working!
 			setResizable(true, false);
-			setResizeLimits(594, 414, 2560, 1440);
+			setResizeLimits(Layout::WINDOW_MIN_W, Layout::WINDOW_MIN_H, Layout::WINDOW_MAX_W, Layout::WINDOW_MAX_H);
 			centreWithSize(getWidth(), getHeight());
 #endif
 

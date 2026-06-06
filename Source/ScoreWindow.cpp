@@ -29,6 +29,7 @@ SOFTWARE.
 
 
 #include <JuceHeader.h>
+#include "LayoutConstants.h"
 #include "ScoreWindow.h"
 #include "MainComponent.h"
 
@@ -251,7 +252,7 @@ void HighScoreWindow::resized()
 
 		int tileSize(mainComp->GetTileSize());
 		int buttonVPos = getLocalBounds().getHeight() - tileSize - (BUTTON_HEIGHT * 2) - 12;
-		int rectWidth = 320;
+		int rectWidth = Layout::HS_SCORE_PANEL_W;
 
 		// Initialize rectangles for the messageBox, and the two buttons
 		m_messageBoxRect = juce::Rectangle<int>(tileSize, tileSize, rectWidth, getLocalBounds().getHeight() - (tileSize * 2));
@@ -270,31 +271,31 @@ void HighScoreWindow::paint(juce::Graphics& g)
 	if (mainComp != nullptr)
 		tileSize = mainComp->GetTileSize();
 
-	int rectWidth = (getLocalBounds().getWidth() - 320) - (tileSize * 2);
+	int rectWidth = (getLocalBounds().getWidth() - Layout::HS_SCORE_PANEL_W) - (tileSize * 2);
 
 	// High-score box background colour
 	g.setColour(juce::Colour(27, 27, 27));
-	g.fillRect(juce::Rectangle<int>(tileSize + 320 - 2, tileSize, rectWidth, getLocalBounds().getHeight() - (tileSize * 2)));
+	g.fillRect(juce::Rectangle<int>(tileSize + Layout::HS_SCORE_PANEL_W - 2, tileSize, rectWidth, getLocalBounds().getHeight() - (tileSize * 2)));
 
 	// Frame
 	g.setColour(juce::Colours::black);
-	g.drawRect(juce::Rectangle<int>(tileSize + 320 - 2, tileSize, rectWidth, getLocalBounds().getHeight() - (tileSize * 2)), 4);
+	g.drawRect(juce::Rectangle<int>(tileSize + Layout::HS_SCORE_PANEL_W - 2, tileSize, rectWidth, getLocalBounds().getHeight() - (tileSize * 2)), 4);
 
 	// Title
 	g.setColour(juce::Colours::grey);
 	g.setFont({ juce::FontOptions("consolas", 32.0f, juce::Font::bold) });
-	g.drawText("High Score", juce::Rectangle<int>(tileSize + 320 - 2, tileSize + 10, rectWidth, 60), juce::Justification::centred);
+	g.drawText("High Score", juce::Rectangle<int>(tileSize + Layout::HS_SCORE_PANEL_W - 2, tileSize + 10, rectWidth, 60), juce::Justification::centred);
 
-	int vPos = tileSize + 80;
-	int hPosName = tileSize + 360;
-	int hPosScore = tileSize + 460;
-	int hPosDate = tileSize + 590;
-	int fieldHeight = 30;
-	int nameWidth = 100;
-	int scoreWidth = 100;
-	int dateWidth = 130;
-	float fontSize = 25.0f; // TODO const
-	g.setFont({ juce::FontOptions("consolas", 25.0f, juce::Font::plain) });
+	int vPos = tileSize + Layout::HS_TABLE_V_OFFSET;
+	int hPosName  = tileSize + Layout::HS_COL_NAME_OFFSET;
+	int hPosScore = tileSize + Layout::HS_COL_SCORE_OFFSET;
+	int hPosDate  = tileSize + Layout::HS_COL_DATE_OFFSET;
+	int fieldHeight = Layout::HS_ROW_HEIGHT;
+	int nameWidth   = Layout::HS_COL_NAME_W;
+	int scoreWidth  = Layout::HS_COL_SCORE_W;
+	int dateWidth   = Layout::HS_COL_DATE_W;
+	float fontSize  = Layout::HS_FONT_PT;
+	g.setFont({ juce::FontOptions("consolas", Layout::HS_FONT_PT, juce::Font::plain) });
 
 	for (int i = 0; i < m_nameCache.size(); i++)
 	{

@@ -172,12 +172,18 @@ public:
 
 protected:
 	/**
-	 * TODO
+	 * Rebuild the name, score, and date caches from the given score list.
+	 * Creates the name-entry TextEditor component when a placeholder entry is found
+	 * (indicating that the current player's score needs a name attached to it).
+	 * @param scoreHash Sorted list of score entries from Controller::GetAugmentedScoreHash().
 	 */
 	void RefreshCachedScore(std::vector<scoreEntry>& scoreHash);
 
 	/**
-	 * TODO
+	 * Commit the player's entered name, save the score to persistent storage,
+	 * and collapse the TextEditor back to a plain text row in the table.
+	 * Called when the player presses Return or Escape, or the editor loses focus.
+	 * @param editor The TextEditor containing the player's name input.
 	 */
 	void ExitTextEditor(juce::TextEditor& editor);
 
