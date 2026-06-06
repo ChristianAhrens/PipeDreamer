@@ -30,6 +30,7 @@ SOFTWARE.
 
 #include "MainComponent.h"
 #include "LayoutConstants.h"
+#include "AudioManager.h"
 #include "Controller.h"
 #include "Board.h"
 #include "Queue.h"
@@ -187,7 +188,7 @@ void MainComponent::mouseDown(const juce::MouseEvent& event)
 					if (tileRect.contains(clickPos))
 					{
 						// Default sound effect for placing pipes on the grid.
-						Controller::SoundID soundID(Controller::SOUND_CLICK);
+						AudioManager::SoundID soundID(AudioManager::SOUND_CLICK);
 
 						TilePiece* clickedTile = board->GetTile(i, j);
 						replace = (clickedTile->GetType() == TilePiece::TYPE_NONE);
@@ -203,7 +204,7 @@ void MainComponent::mouseDown(const juce::MouseEvent& event)
 								replace = true;
 
 								// Sound effect should be explosive instead.
-								soundID = Controller::SOUND_EXPLODE;
+								soundID = AudioManager::SOUND_EXPLODE;
 							}
 						}
 

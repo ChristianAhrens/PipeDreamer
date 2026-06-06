@@ -32,6 +32,7 @@ SOFTWARE.
 #include "LayoutConstants.h"
 #include "ScoreWindow.h"
 #include "GameRenderer.h"
+#include "MainComponent.h"
 
 
 // ---- Helper types and constants ----

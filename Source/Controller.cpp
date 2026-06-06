@@ -29,8 +29,10 @@ SOFTWARE.
 
 
 #include "Controller.h"
+#include "AudioManager.h"
 #include "Board.h"
 #include "Queue.h"
+#include "DifficultyConfig.h"
 
 
 // ---- Helper types and constants ----
@@ -60,14 +62,12 @@ Controller::Controller()
 	// Initialize max score
 	InitApplicationProperties();
 
-	// Init sounds.
-	InitAudio();
+	// Create audio manager (initialises device and loads sounds).
+	m_audioManager = std::make_unique<AudioManager>();
 }
 
 Controller::~Controller()
 {
-	ShutdownAudio();
-
 	m_singleton = nullptr;
 }
 
@@ -175,7 +175,7 @@ bool Controller::Pump()
 		{
 			// The player just gained enough points 
 			// to advance to the next level. Notify with a sound.
-			QueueSound(SOUND_NOTIFY);
+			QueueSound(AudioManager::SOUND_NOTIFY);
 		}
 	}
 	
@@ -183,10 +183,10 @@ bool Controller::Pump()
 	else
 	{
 		// Sound effect to trigger, depends on whether the player advanced to next level.
-		SoundID soundID(SOUND_GAME_OVER);
+		SoundID soundID(AudioManager::SOUND_GAME_OVER);
 		ScoreDetails details(GetScoreDetails());
 		if (details.advance)
-			soundID = SOUND_LEVEL_UP;
+			soundID = AudioManager::SOUND_LEVEL_UP;
 
 		// Trigger sound effect.
 		QueueSound(soundID);
@@ -255,58 +255,18 @@ void Controller::Reset(Controller::Command cmd)
 
 float Controller::GetCurrentOozePerPump() const
 {
-	static const float oozePerLevel[] = {
-		1.0F, // Level 1
-		1.2F, // Level 2
-		1.4F, // Level 3
-		1.5F, // Level 4
-		1.6F, // Level 5
-		1.8F, // Level 6
-		2.0F, // Level 7
-		2.2F, // Level 8
-		2.5F, // Level 9
-		3.0F, // Level 10
-		3.5F, // Level 11
-		5.0F  // Level 12
-	};
-
-	// m_difficultyLevel starts at 1
-	int arraySize = sizeof(oozePerLevel) / sizeof(*oozePerLevel);
-	int level = m_difficultyLevel - 1;
-	if (level >= arraySize)
-		level = arraySize - 1;
+	float base = Difficulty::GetLevelConfig(m_difficultyLevel).oozePerPump;
 
 	// If fast-forward button is currently toggled on, increase ooze per pump.
 	if (m_fastForward)
-		return oozePerLevel[level] * 10.0f;
+		return base * 10.0f;
 
-	return oozePerLevel[level];
+	return base;
 }
 
 int Controller::GetCurrentCountdown() const
 {
-	static const int countdownPerLevel[] = {
-		320,	// Level 1
-		290,	// Level 2
-		260,	// Level 3
-		230,	// Level 4
-		200,	// Level 5
-		180,	// Level 6
-		160,	// Level 7
-		140,	// Level 8
-		120,	// Level 9
-		100,	// Level 10
-		80,		// Level 11
-		60		// Level 12
-	};
-
-	// m_difficultyLevel starts at 1
-	int arraySize = sizeof(countdownPerLevel) / sizeof(*countdownPerLevel);
-	int level = m_difficultyLevel - 1;
-	if (level >= arraySize)
-		level = arraySize - 1;
-
-	return countdownPerLevel[level];
+	return Difficulty::GetLevelConfig(m_difficultyLevel).countdown;
 }
 
 bool Controller::GetFastForward() const
@@ -319,136 +279,7 @@ void Controller::SetFastForward(bool fastForward)
 	m_fastForward = fastForward;
 }
 
-void Controller::InitAudio()
-{
-	// Enable support for WAV files and other commom formats.
-	juce::AudioFormatManager audioFormatManager;
-	audioFormatManager.registerBasicFormats();
-
-	// Stereo output.
-	m_audioDeviceManager.initialiseWithDefaultDevices(0, 2);
-
-	// Registers audio callback to be used.
-	m_audioDeviceManager.addAudioCallback(&m_audioPlayer);
-
-	juce::AudioIODevice* audioDevice = m_audioDeviceManager.getCurrentAudioDevice();
-	if (audioDevice)
-	{
-		for (int i = SOUND_CLICK; i < SoundID::SOUND_MAX; i++)
-		{
-			std::unique_ptr<juce::InputStream> inputStream;
-
-			SoundID sId = static_cast<SoundID>(i);
-			switch (sId)
-			{
-				case SOUND_CLICK:
-					inputStream = std::make_unique<juce::MemoryInputStream>(BinaryData::tap_wav, BinaryData::tap_wavSize, true);
-					break;
-				case SOUND_EXPLODE:
-					inputStream = std::make_unique<juce::MemoryInputStream>(BinaryData::explode_wav, BinaryData::explode_wavSize, true);
-					break;
-				case SOUND_NOTIFY:
-					inputStream = std::make_unique<juce::MemoryInputStream>(BinaryData::notify_wav, BinaryData::notify_wavSize, true);
-					break;
-				case SOUND_LEVEL_UP:
-					inputStream = std::make_unique<juce::MemoryInputStream>(BinaryData::win_wav, BinaryData::win_wavSize, true);
-					break;
-				case SOUND_GAME_OVER:
-					inputStream = std::make_unique<juce::MemoryInputStream>(BinaryData::lose_wav, BinaryData::lose_wavSize, true);
-					break;
-				default:
-					break;
-			}
-
-			// Create a new AudioSource which gets its data from the binary stream above.
-			SoundSource source(new juce::AudioFormatReaderSource(audioFormatManager.createReaderFor(std::move(inputStream)), true));
-
-			// Store this source in a map to be easily found later, in Controller::PlaySound().
-			m_soundSources.insert(std::make_pair(sId, std::move(source)));
-		}
-
-		// Audio is to be mixed by m_audioMixer and passed on to 
-		// the AudioSourcePlayer, which then streams it to the AudioIODevice.
-		m_audioPlayer.setSource(&m_audioMixer);
-
-		// Start the AudioThread, which will lay dormant 
-		// until woken up by calls to QueueSound().
-		m_audioThread.startThread();
-	}
-}
-
-void Controller::ShutdownAudio()
-{
-	// -- TODO: are these really needed?
-	for (std::map<SoundID, SoundSource>::iterator iter = m_soundSources.begin(); iter != m_soundSources.end(); ++iter)
-	{
-		iter->second->releaseResources();
-	}
-	m_audioMixer.releaseResources();
-	m_audioMixer.removeAllInputs();
-	// --
-
-
-	// Exception in CriticalSection::enter() without this.
-	m_audioPlayer.setSource(nullptr);
-
-	// Attempts to stop the thread running. The threadShouldExit() method will return true,
-	// and notify() will be called in case the thread is currently waiting.
-	m_audioThread.stopThread(2000);
-}
-
 void Controller::QueueSound(SoundID soundID)
 {
-	m_audioThread.QueueSound(soundID);
-}
-
-void Controller::PlaySound(SoundID soundID)
-{
-	juce::AudioIODevice* audioDevice = m_audioDeviceManager.getCurrentAudioDevice();
-	if (audioDevice && (m_soundSources.count(soundID) != 0))
-	{
-		// Set playhead back to the start of the sample, 
-		// and add it to the mixer if not already added before.
-		// TODO: adding immediately plays it, so not added in InitAudio().
-		m_soundSources.at(soundID)->setNextReadPosition(0);
-		m_audioMixer.addInputSource(m_soundSources.at(soundID).get(), false);
-	}
-}
-
-
-// ----------------------------------------
-// --- AudioThread class implementation ---
-
-Controller::AudioThread::AudioThread()
-	:	juce::Thread("AudioThread")
-{
-
-}
-
-void Controller::AudioThread::run()
-{
-	while (!threadShouldExit())
-	{
-		// Just a safety net to avoid constantly triggering the sound,
-		// should the wait() call not have immediate effect. 
-		// TODO: need this?
-		if (m_soundID != SOUND_NONE)
-		{
-			Controller::GetInstance()->PlaySound(m_soundID);
-
-			m_soundID = SOUND_NONE;
-		}
-
-		// Stop the AudioThread until another thread calls notify().
-		wait(-1); 
-	}
-}
-
-void Controller::AudioThread::QueueSound(SoundID soundID)
-{
-	// Wake up the AudioThread, and let it know 
-	// which sound is to be triggered once run() is called.
-	m_soundID = soundID;
-
-	notify();
+	m_audioManager->QueueSound(soundID);
 }

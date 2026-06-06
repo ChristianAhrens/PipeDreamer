@@ -31,6 +31,7 @@ SOFTWARE.
 #pragma once
 
 #include <JuceHeader.h>
+#include "AudioManager.h"
 
 
 // ---- Forward declarations ----
@@ -72,19 +73,8 @@ public:
 		CMD_CONTINUE
 	};
 
-	/**
-	 * Game sound IDs.
-	 */
-	enum SoundID
-	{
-		SOUND_NONE = 0,
-		SOUND_CLICK,
-		SOUND_EXPLODE,
-		SOUND_NOTIFY,
-		SOUND_LEVEL_UP,
-		SOUND_GAME_OVER,
-		SOUND_MAX
-	};
+	/** Sound identifier type — sourced from AudioManager. */
+	using SoundID = AudioManager::SoundID;
 
 	/**
 	 * Struct used to pass score information to the ScoreWindow.
@@ -214,75 +204,22 @@ public:
 	void SetFastForward(bool fastForward);
 
 	/**
-	 * Wakes up the AudioThread with a specific sound to be played once it is awake.
-	 * 
-	 * @param soundID	Sound to trigger in AudioThread::run().
+	 * Schedule a sound effect for playback on the AudioThread.
+	 *
+	 * @param soundID	Sound to play.
 	 */
 	void QueueSound(SoundID soundID);
 
 protected:
-	/**
-	 * Class dedicated to playing sound effects on a dedicated thread.
-	 */
-	class AudioThread : public juce::Thread
-	{
-	public:
-		/**
-		 * Class constructor.
-		 */
-		AudioThread();
-
-		/**
-		 * Reimplemented from juce::Thread.
-		 */
-		void run() override;
-
-		/**
-		 * Wakes up the AudioThread with a specific sound to be played once it is awake.
-		 *
-		 * @param soundID	Sound to trigger in AudioThread::run().
-		 */
-		void QueueSound(SoundID soundID);
-
-	private:
-		/**
-		 * Used to signal which sound is to be played once the AudioThread is running.
-		 */
-		std::atomic<SoundID> m_soundID = { SoundID::SOUND_NONE };
-	};
-
-	/**
-	 * Object dedicated to playing sound effects on a dedicated thread.
-	 */
-	AudioThread m_audioThread;
-
 	/**
 	 * Configure and initialize the app properties file.
 	 */
 	void InitApplicationProperties();
 
 	/**
-	 * Get the amount of Ooze to be pumped per tick at the current difficulty level.
+	 * Get the amount of ooze to be pumped per tick at the current difficulty level.
 	 */
 	float GetCurrentOozePerPump() const;
-
-	/**
-	 * Configure and initialize the game's sound engine.
-	 */
-	void InitAudio();
-
-	/**
-	 * Free objects used for the game sounds.
-	 */
-	void ShutdownAudio();
-
-	/**
-	 * Triggers a sound to be played immediately by the m_audioMixer.
-	 * This is called from within the AudioThread, after having been woken up via the MainComponent.
-	 * 
-	 * @param soundID	Sound to trigger in AudioThread::run().
-	 */
-	void PlaySound(SoundID soundID);
 
 private:
 	/**
@@ -332,29 +269,9 @@ private:
 	std::vector<scoreEntry> m_scoreHash;
 
 	/**
-	 * Object that keeps tracks of a current audio device.
+	 * Handles all audio device management and sound playback.
 	 */
-	juce::AudioDeviceManager m_audioDeviceManager;
-
-	/**
-	 * Object that streams audio from an audio source to an AudioIODevice.
-	 */
-	juce::AudioSourcePlayer m_audioPlayer;
-
-	/**
-	 * AudioSource object that mixes together the output of other AudioSources (see m_soundSources).
-	 */
-	juce::MixerAudioSource m_audioMixer;
-
-	/**
-	 * Shortcut type name for pointer to an AudioSource that obtains it's data from a file.
-	 */
-	typedef std::unique_ptr<juce::AudioFormatReaderSource> SoundSource;
-
-	/**
-	 * Map of sound sources. Keys are the soundIDs, values are AudioFormatReaderSource.
-	 */
-	std::map<SoundID, SoundSource> m_soundSources;
+	std::unique_ptr<AudioManager> m_audioManager;
 
 
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(Controller)
