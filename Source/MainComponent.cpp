@@ -30,35 +30,37 @@ SOFTWARE.
 
 #include "MainComponent.h"
 #include "LayoutConstants.h"
-#include "AudioManager.h"
 #include "Controller.h"
-#include "Board.h"
-#include "Queue.h"
-#include "TilePiece.h"
 #include "ScoreWindow.h"
 
 
 // ---- Class Implementation ----
 
 MainComponent::MainComponent()
-	:	m_blockInteraction(0)
 {
-	m_controller = std::make_unique<Controller>();
+    m_controller = std::make_unique<Controller>();
 
-	// Create GUI component which will work as a clickable hyperlink to our github.
-	m_hyperlink = std::make_unique<juce::HyperlinkButton>(	juce::String("https://github.com/escalonely/PipeDreamer"),
-															juce::URL("https://github.com/escalonely/PipeDreamer"));
-	m_hyperlink->setColour(juce::HyperlinkButton::textColourId, juce::Colours::grey);
-	addAndMakeVisible(m_hyperlink.get());
+    m_boardComponent = std::make_unique<BoardComponent>();
+    addAndMakeVisible(m_boardComponent.get());
 
-	setSize(Layout::WINDOW_DEFAULT_W, Layout::WINDOW_DEFAULT_H);
+    m_queueComponent = std::make_unique<QueueComponent>();
+    addAndMakeVisible(m_queueComponent.get());
 
-	// Reset the countdown to the start of the round
-	// (before ooze starts pumping out)
-	m_countDown = m_controller->GetCurrentCountdown();
+    m_progressComponent = std::make_unique<ProgressComponent>();
+    addAndMakeVisible(m_progressComponent.get());
 
-	// GUI-refresh rate
-	startTimer(Layout::GUI_REFRESH_RATE);
+    m_hyperlink = std::make_unique<juce::HyperlinkButton>(
+        juce::String("https://github.com/escalonely/PipeDreamer"),
+        juce::URL("https://github.com/escalonely/PipeDreamer"));
+    m_hyperlink->setColour(juce::HyperlinkButton::textColourId, juce::Colours::grey);
+    addAndMakeVisible(m_hyperlink.get());
+
+    setSize(Layout::WINDOW_DEFAULT_W, Layout::WINDOW_DEFAULT_H);
+
+    m_maxCountDown = m_controller->GetCurrentCountdown();
+    m_countDown    = m_maxCountDown;
+    m_progressComponent->SetCountDown(m_countDown, m_maxCountDown);
+    startTimer(Layout::GUI_REFRESH_RATE);
 }
 
 MainComponent::~MainComponent()
@@ -67,204 +69,197 @@ MainComponent::~MainComponent()
 
 int MainComponent::GetTileSize() const
 {
-	return m_renderer.GetTileSize();
+    return m_boardComponent->GetTileSize();
 }
 
 void MainComponent::resized()
 {
-	m_renderer.SetLayout(getLocalBounds());
+    const int W = getWidth();
+    const int H = getHeight();
+    const bool portrait = H > W;
 
-	// Position the hyperlink using the renderer's font computation.
-	auto f = m_renderer.GetFont(GameRenderer::LABEL_VERSION);
-	auto textWidth = juce::GlyphArrangement::getStringWidthInt(f, m_hyperlink->getButtonText());
-	m_hyperlink->setFont(f, false /* do not resize */);
-	m_hyperlink->setBounds(	getLocalBounds().getWidth() - (textWidth + 40),
-							getLocalBounds().getHeight() - 50,
-							textWidth + 40,
-							40);
+    // ---- Fixed zone heights ----
+    const int H_header   = std::max(40, H / 10);
+    const int H_footer   = std::max(28, H / 18);
+    const int H_progress = std::max(50, H / 10);
 
-	// Resize the ScoreWindow, if any.
-	if (m_scoreWindow)
-		m_scoreWindow->resized();
+    // ---- Zone rectangles ----
+    juce::Rectangle<int> headerBounds(0, 0, W, H_header);
+    juce::Rectangle<int> contentBounds(0, H_header, W, H - H_header - H_progress - H_footer);
+    juce::Rectangle<int> progressBounds(0, H - H_footer - H_progress, W, H_progress);
+    juce::Rectangle<int> footerBounds(0, H - H_footer, W, H_footer);
+
+    // ---- Progress + Footer ----
+    m_progressComponent->setBounds(progressBounds);
+
+    auto versionFont = m_renderer.GetFont(GameRenderer::LABEL_VERSION);
+    auto textWidth   = juce::GlyphArrangement::getStringWidthInt(versionFont, m_hyperlink->getButtonText());
+    m_hyperlink->setFont(versionFont, false);
+    m_hyperlink->setBounds(footerBounds.withSizeKeepingCentre(textWidth + 8, footerBounds.getHeight()));
+
+    // ---- Font ref bounds for GameRenderer ----
+    juce::Rectangle<int> fontRefBounds = portrait
+        ? juce::Rectangle<int>(0, 0, H, W)   // virtual landscape (swap dims)
+        : juce::Rectangle<int>(0, 0, W, H);
+
+    m_renderer.SetLayout(headerBounds, fontRefBounds);
+
+    // ---- Board + Queue placement ----
+    const int cW = contentBounds.getWidth();
+    const int cH = contentBounds.getHeight();
+    const int cY = contentBounds.getY();
+
+    if (!portrait)
+    {
+        // Landscape: queue is a vertical strip in a left sidebar.
+        // Sidebar is sized to snugly wrap one tile column with proportional padding,
+        // rather than a fixed window fraction, to reduce empty space around the queue.
+        int T = cH / 7;  // start from height bound
+        if (T < 1) T = 1;
+        const int queuePad   = std::max(8, T / 4);
+        const int sidebarW   = T + 2 * queuePad;
+        const int boardAreaW = cW - sidebarW;
+        T = std::min(T, (boardAreaW + 9) / 10);  // account for 1px tile border overlap
+        if (T < 1) T = 1;
+
+        // Exact pixel area for a grid with 1px shared borders: N*T - (N-1)
+        const int boardW = 10 * T - 9;
+        const int boardH = 7 * T - 6;
+        const int boardX = sidebarW + (boardAreaW - boardW) / 2;
+        const int boardY = cY + (cH - boardH) / 2;
+
+        m_boardComponent->setBounds(boardX, boardY, boardW, boardH);
+        m_boardComponent->setTransform(juce::AffineTransform()); // identity
+
+        const int queueW = T;
+        const int queueH = 5 * T - 4;  // exact pixel area for 5-tile column
+        const int queueX = (sidebarW - queueW) / 2;
+        const int queueY = cY + (cH - queueH) / 2;
+
+        m_queueComponent->setBounds(queueX, queueY, queueW, queueH);
+        m_queueComponent->setTransform(juce::AffineTransform());
+    }
+    else
+    {
+        // Portrait: board rotated 90° CW (visual 7T × 10T) sits at top of content area.
+        // Queue is a horizontal strip (5T × T) immediately below the board.
+        // T is chosen so board + queue exactly fill the content height.
+        // 10T (board) + gap + T (queue) = cH  →  T = (cH - gap) / 11
+        const int gap = 4;
+        // Exact visual sizes after rotation: board is (7T-6) wide × (10T-9) tall,
+        // queue is (5T-4) wide × T tall.
+        // Fit constraint: (10T-9) + gap + T = cH  →  T = (cH - gap + 9) / 11
+        // Width constraint: 7T-6 ≤ cW  →  T ≤ (cW + 6) / 7
+        int T = std::min((cH - gap + 9) / 11, (cW + 6) / 7);
+        if (T < 1) T = 1;
+
+        const int boardVisualW = 7 * T - 6;
+        const int boardVisualH = 10 * T - 9;
+        const int boardX       = (W - boardVisualW) / 2; // centred horizontally
+
+        // rotation(+π/2).translated(boardVisualW + boardX, cY) maps the component's
+        // logical (0, 7T-6) to the visual top-left (boardX, cY). Verified:
+        //   (0, 7T-6) →rotate→ (-(7T-6), 0) →translate→ (boardX, cY)  ✓
+        m_boardComponent->setBounds(0, 0, 10 * T - 9, 7 * T - 6);
+        m_boardComponent->setTransform(
+            juce::AffineTransform::rotation(juce::MathConstants<float>::halfPi)
+            .translated(static_cast<float>(boardVisualW + boardX), static_cast<float>(cY)));
+
+        const int queueW = 5 * T - 4;  // exact pixel area for 5-tile row
+        const int queueH = T;
+        const int queueX = (W - queueW) / 2;
+        const int queueY = cY + boardVisualH + gap;
+
+        m_queueComponent->setBounds(queueX, queueY, queueW, queueH);
+        m_queueComponent->setTransform(juce::AffineTransform());
+    }
+
+    // Resize the ScoreWindow if one is visible.
+    if (m_scoreWindow)
+        m_scoreWindow->resized();
 }
 
 void MainComponent::paint(juce::Graphics& g)
 {
-	m_renderer.Render(g, m_countDown);
+    g.fillAll(juce::Colour(67, 67, 67));
+    m_renderer.Render(g);
 }
 
 void MainComponent::timerCallback()
 {
-	const juce::ScopedLock lock(m_lock);
+    const juce::ScopedLock lock(m_lock);
 
-	Controller* controller(m_controller.get());
-	Controller::GameState state(controller->GetState());
+    Controller* controller(m_controller.get());
+    Controller::GameState state(controller->GetState());
 
-	if (state == Controller::STATE_RUNNING)
-	{
-		// When it reaches 0, clicks are enabled again.
-		if (m_blockInteraction > 0)
-			m_blockInteraction--;
+    if (state == Controller::STATE_RUNNING)
+    {
+        m_boardComponent->Tick();
 
-		// Countdown to start pumping ooze.
-		if (m_countDown > 0)
-		{
-			// If fast-forward button is currently toggled on, decrease countdown faster.
-			if (controller->GetFastForward())
-				m_countDown -= 5;
-			else
-				m_countDown -= 1;
-		}
+        if (m_countDown > 0)
+        {
+            if (controller->GetFastForward())
+                m_countDown -= 5;
+            else
+                m_countDown -= 1;
+        }
+        else
+        {
+            bool contained = controller->Pump();
+            if (!contained)
+                startTimer(2000);
+        }
+    }
+    else if (state == Controller::STATE_STOPPED)
+    {
+        stopTimer();
 
-		else
-		{
-			bool contained = controller->Pump();
-			if (!contained)
-			{
-				// Ooze spill!
-				// Give the player a moment to see where the spill took place,
-				// before covering up the board with the score window.
-				startTimer(2000);
-			}
-		}
-	}
+        Controller::ScoreDetails details(controller->GetScoreDetails());
+        juce::Point<int> windowOrigin(0, 0);
+        if (details.advance)
+            windowOrigin = juce::Point<int>(getLocalBounds().getWidth() / 3, getLocalBounds().getHeight() / 4);
 
-	else if (state == Controller::STATE_STOPPED)
-	{
-		// Stop refreshing GUI.
-		stopTimer();
+        m_scoreWindow.reset(ScoreWindow::CreateScoreWindow(details));
+        m_scoreWindow->addChangeListener(this);
+        addAndMakeVisible(m_scoreWindow.get());
+        m_scoreWindow->setTopLeftPosition(windowOrigin);
+        m_scoreWindow->resized();
+    }
 
-		// Position the small AdvanceWindow in the middle of the window,
-		// while the HighScoreWindow will take up the whole window.
-		Controller::ScoreDetails details(controller->GetScoreDetails());
-		juce::Point<int> windowOrigin(0, 0);
-		if (details.advance)
-			windowOrigin = juce::Point<int>(getLocalBounds().getWidth() / 3, getLocalBounds().getHeight() / 4);
-
-		// Show scoreboard overlay.
-		m_scoreWindow.reset(ScoreWindow::CreateScoreWindow(details));
-		m_scoreWindow->addChangeListener(this);
-		addAndMakeVisible(m_scoreWindow.get());
-		m_scoreWindow->setTopLeftPosition(windowOrigin);
-		m_scoreWindow->resized();
-	}
-
-	this->repaint();
-}
-
-void MainComponent::mouseDown(const juce::MouseEvent& event)
-{
-	const juce::ScopedLock lock(m_lock);
-
-	Controller* controller(m_controller.get());
-
-	if ((controller->GetState() == Controller::STATE_RUNNING) &&
-		(m_blockInteraction == 0))
-	{
-		juce::Point<int> clickPos = event.getMouseDownPosition();
-
-		// If user clicked on the fast-forward button, toggle fast-forward state.
-		// This increases the ooze amount in GetCurrentOozePerPump().
-		if (m_renderer.GetFastForwardButtonRect().contains(clickPos))
-		{
-			controller->SetFastForward(!controller->GetFastForward());
-		}
-
-		else
-		{
-			Board* board(controller->GetBoard());
-			bool replace(false);
-			int tileSize = m_renderer.GetTileSize();
-			int boardHStartPos = static_cast<int>(getLocalBounds().getWidth() / Layout::BOARD_H_DIVISOR);
-			int boardVStartPos = static_cast<int>(getLocalBounds().getHeight() / Layout::BOARD_V_DIVISOR);
-
-			for (int i = 0; (i < board->GetNumCols()) && !replace; i++)
-			{
-				for (int j = 0; (j < board->GetNumRows()) && !replace; j++)
-				{
-					juce::Rectangle<int> tileRect(	boardHStartPos + i * (tileSize - 1),
-													boardVStartPos + j * (tileSize - 1),
-													tileSize, tileSize);
-					if (tileRect.contains(clickPos))
-					{
-						// Default sound effect for placing pipes on the grid.
-						AudioManager::SoundID soundID(AudioManager::SOUND_CLICK);
-
-						TilePiece* clickedTile = board->GetTile(i, j);
-						replace = (clickedTile->GetType() == TilePiece::TYPE_NONE);
-
-						if (!replace)
-						{
-							Pipe* clickedPipe = dynamic_cast<Pipe*>(clickedTile);
-							if ((clickedPipe != nullptr) &&
-								(clickedPipe->IsEmpty()) &&		// Only empty tiles can be replaced.
-								(!clickedPipe->IsStart()) &&	// Cannot replace starter tiles.
-								(board->PopBomb()))				// Need bombs to replace existing pipe tiles.
-							{
-								replace = true;
-
-								// Sound effect should be explosive instead.
-								soundID = AudioManager::SOUND_EXPLODE;
-							}
-						}
-
-						if (replace)
-						{
-							// Trigger appropriate sound effect.
-							controller->QueueSound(soundID);
-
-							// Grab the next piece in the queue, and...
-							TilePiece::Type newType = controller->GetQueue()->Pop();
-
-							// ... place it on the board.
-							board->ReplaceTile(i, j, newType);
-
-							// To prevent accidental double-clicking disable actions for a few frames.
-							static constexpr int framesInteractionBlocked = 5;
-							m_blockInteraction += framesInteractionBlocked;
-						}
-					}
-				}
-			}
-		}
-	}
+    m_progressComponent->SetCountDown(m_countDown, m_maxCountDown);
+    repaint();
 }
 
 void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source)
 {
-	(void)source;
+    (void)source;
 
-	const juce::ScopedLock lock(m_lock);
+    const juce::ScopedLock lock(m_lock);
 
-	if (m_scoreWindow != nullptr)
-	{
-		switch (m_scoreWindow->GetCommand())
-		{
-			case Controller::CMD_RESTART:
-			case Controller::CMD_CONTINUE:
-				{
-					m_controller->Reset(m_scoreWindow->GetCommand());
+    if (m_scoreWindow != nullptr)
+    {
+        switch (m_scoreWindow->GetCommand())
+        {
+            case Controller::CMD_RESTART:
+            case Controller::CMD_CONTINUE:
+                {
+                    m_controller->Reset(m_scoreWindow->GetCommand());
+                    m_maxCountDown = m_controller->GetCurrentCountdown();
+                    m_countDown    = m_maxCountDown;
+                    m_boardComponent->ResetInteraction();
+                    m_progressComponent->SetCountDown(m_countDown, m_maxCountDown);
+                    startTimer(Layout::GUI_REFRESH_RATE);
+                }
+                break;
 
-					// Countdown to ooze pumping.
-					m_countDown = m_controller->GetCurrentCountdown();
+            case Controller::CMD_QUIT:
+                juce::JUCEApplicationBase::quit();
+                break;
 
-					// Restart GUI
-					m_blockInteraction = 0;
-					startTimer(Layout::GUI_REFRESH_RATE);
-				}
-				break;
+            default:
+                break;
+        }
 
-			case Controller::CMD_QUIT:
-				{
-					juce::JUCEApplicationBase::quit();
-				}
-				break;
-
-			default:
-				break;
-		}
-
-		// This deletes the unique_ptr.
-		m_scoreWindow = nullptr;
-	}
+        m_scoreWindow = nullptr;
+    }
 }

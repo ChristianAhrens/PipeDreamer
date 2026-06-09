@@ -39,6 +39,12 @@
             file="Source/LayoutConstants.h"/>
       <FILE id="GRdrH" name="GameRenderer.h" compile="0" resource="0" file="Source/GameRenderer.h"/>
       <FILE id="GRdrC" name="GameRenderer.cpp" compile="1" resource="0" file="Source/GameRenderer.cpp"/>
+      <FILE id="BdCpH" name="BoardComponent.h" compile="0" resource="0" file="Source/BoardComponent.h"/>
+      <FILE id="BdCpC" name="BoardComponent.cpp" compile="1" resource="0" file="Source/BoardComponent.cpp"/>
+      <FILE id="QuCpH" name="QueueComponent.h" compile="0" resource="0" file="Source/QueueComponent.h"/>
+      <FILE id="QuCpC" name="QueueComponent.cpp" compile="1" resource="0" file="Source/QueueComponent.cpp"/>
+      <FILE id="PrCpH" name="ProgressComponent.h" compile="0" resource="0" file="Source/ProgressComponent.h"/>
+      <FILE id="PrCpC" name="ProgressComponent.cpp" compile="1" resource="0" file="Source/ProgressComponent.cpp"/>
       <FILE id="DfCfH" name="DifficultyConfig.h" compile="0" resource="0"
             file="Source/DifficultyConfig.h"/>
       <FILE id="DfCfC" name="DifficultyConfig.cpp" compile="1" resource="0"

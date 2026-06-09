@@ -36,98 +36,59 @@ SOFTWARE.
 #include <JuceHeader.h>
 
 
-// ---- Forward declarations ----
-
-class TilePiece;
-
-
 // ---- Class Definition ----
 
 /**
- * Stateless renderer responsible for all game drawing.
- * MainComponent owns one instance and calls SetLayout() on every resize,
- * then Render() on every paint.
+ * Stateless header renderer. Draws Level, Score, and Bomb indicators into the
+ * header strip at the top of the window.
+ *
+ * MainComponent calls SetLayout() on every resize, then Render() on every paint.
+ * The ooze meter and FF button live in ProgressComponent.
  */
 class GameRenderer
 {
 public:
-    /**
-     * ID of a label whose font size this renderer can compute.
-     */
+    /** ID of a label whose font size this renderer can compute. */
     enum LabelID
     {
         LABEL_SCORE = 0,    //< Plain score/level text.
         LABEL_BSCORE,       //< Bold score text, shown when the advance threshold is reached.
-        LABEL_VERSION       //< Small version hyperlink label.
+        LABEL_VERSION       //< Small version / footer label.
     };
 
-    /**
-     * Class constructor.
-     */
     GameRenderer();
 
     /**
-     * Update the stored window bounds and recompute derived layout values (tile size, button rect).
-     * Must be called whenever the parent component is resized.
+     * Update layout parameters. Must be called on every parent resize.
      *
-     * @param windowBounds  The new bounds of the parent window, in local coordinates.
+     * @param headerBounds  Area in the window occupied by the header strip.
+     * @param fontRefBounds Full virtual-landscape window bounds used only for
+     *                      consistent font scaling across portrait/landscape modes.
+     *                      Pass the full window bounds in landscape; in portrait
+     *                      pass a rectangle with width=realHeight, height=realWidth.
      */
-    void SetLayout(juce::Rectangle<int> windowBounds);
+    void SetLayout(juce::Rectangle<int> headerBounds, juce::Rectangle<int> fontRefBounds);
 
-    /**
-     * Draw the entire game scene into the given graphics context.
-     *
-     * @param g         The graphics context to draw into.
-     * @param countDown Remaining countdown ticks until ooze starts pumping (used by the ooze meter).
-     */
-    void Render(juce::Graphics& g, int countDown);
+    /** Draw the header (level, score, bombs) into @p g. */
+    void Render(juce::Graphics& g);
 
-    /**
-     * Get the computed tile side length, in pixels.
-     *
-     * @return Tile size in pixels, or 0 if SetLayout() has not been called yet.
-     */
-    int GetTileSize() const;
-
-    /**
-     * Get the screen rectangle occupied by the fast-forward button.
-     *
-     * @return Rectangle in the parent window's local coordinate space.
-     */
-    juce::Rectangle<int> GetFastForwardButtonRect() const;
-
-    /**
-     * Get the font to use for the given label, scaled to the current window size.
-     *
-     * @param labelID   Which label to compute a font for.
-     * @return          A scaled juce::Font.
-     */
+    /** Get the font for the given label, scaled to the current window size. */
     juce::Font GetFont(LabelID labelID) const;
 
     /**
      * Get the tile background colour for a given difficulty level.
-     *
-     * @param difficultyLevel   Level number starting at 1.
-     * @return                  Colour used to fill pipe tile backgrounds at that level.
+     * Static so that BoardComponent and QueueComponent can call it without a renderer instance.
      */
     static juce::Colour GetTileColourForLevel(int difficultyLevel);
 
 private:
-    static constexpr float OOZE_THICKNESS = 15.0f;
+    void DrawHeader(juce::Graphics& g);
 
-    void DrawLevelAndScore(juce::Graphics& g);
-    void DrawTile(TilePiece* tile, juce::Point<int> origin, juce::Graphics& g);
-    void DrawOoze(TilePiece* tile, juce::Point<int> origin, juce::Graphics& g);
-    void DrawCrossSecondWay(TilePiece* tile, juce::Point<int> origin, juce::Graphics& g);
-    void DrawTileDecoration(TilePiece* tile, juce::Point<int> origin, juce::Graphics& g);
-    void DrawSpill(juce::Point<int> origin, juce::Graphics& g);
-    void DrawOozeMeter(juce::Point<int> origin, juce::Graphics& g, int countDown);
-    void DrawBombs(juce::Point<int> origin, juce::Graphics& g);
-    void DrawFastForwardButton(juce::Graphics& g);
+    /** Area in the parent window where header elements are positioned. */
+    juce::Rectangle<int> m_headerBounds;
 
-    juce::Rectangle<int> m_windowBounds;
-    int m_tileSize = 0;
-    juce::Rectangle<int> m_fastForwardButtonRect;
+    /** Virtual landscape bounds — used only for font scaling (see SetLayout). */
+    juce::Rectangle<int> m_fontRefBounds;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(GameRenderer)
 };

@@ -32,6 +32,9 @@ SOFTWARE.
 
 #include <JuceHeader.h>
 #include "GameRenderer.h"
+#include "BoardComponent.h"
+#include "QueueComponent.h"
+#include "ProgressComponent.h"
 
 
 // ---- Forward declarations ----
@@ -43,85 +46,42 @@ class ScoreWindow;
 // ---- Class Definition ----
 
 /**
- * GUI Component that occupies the entire game window.
- * Owns the Controller and delegates all rendering to GameRenderer.
+ * Root GUI component that occupies the entire game window.
+ * Divides the window into four horizontal zones (header, content, progress, footer)
+ * and positions child components within them for both landscape and portrait modes.
  */
-class MainComponent  :	public juce::Component,
-						public juce::Timer,
-						public juce::ChangeListener
+class MainComponent : public juce::Component,
+                      public juce::Timer,
+                      public juce::ChangeListener
 {
 public:
-	/**
-	 * Class constructor. Creates the Controller and starts the GUI timer.
-	 */
     MainComponent();
+    ~MainComponent() override;
 
-	/**
-	 * Class destructor.
-	 */
-	~MainComponent() override;
+    /** Returns the current tile side length from BoardComponent. Used by ScoreWindow. */
+    int GetTileSize() const;
 
-	/**
-	 * Get the width & height of a tile piece, in pixels.
-	 *
-	 * @return Tile size in pixels.
-	 */
-	int GetTileSize() const;
-
-	/**
-	 * Reimplemented from juce::Component.
-	 */
-	void paint(juce::Graphics&) override;
-
-	/**
-	 * Reimplemented from juce::Component.
-	 */
-	void resized() override;
-
-	/**
-	 * Reimplemented from juce::Component.
-	 */
-	void mouseDown(const juce::MouseEvent& event) override;
-
-	/**
-	 * Reimplemented from juce::Timer.
-	 */
-	void timerCallback() override;
-
-	/**
-	 * Reimplemented from juce::ChangeListener.
-	 */
-	void changeListenerCallback(juce::ChangeBroadcaster* source) override;
+    void paint(juce::Graphics&) override;
+    void resized() override;
+    void timerCallback() override;
+    void changeListenerCallback(juce::ChangeBroadcaster* source) override;
 
 private:
-	/**
-	 * Owns the game Controller for the lifetime of this component.
-	 */
-	std::unique_ptr<Controller> m_controller;
+    std::unique_ptr<Controller>        m_controller;
+    GameRenderer                       m_renderer;
 
-	/**
-	 * Handles all game scene rendering.
-	 */
-	GameRenderer m_renderer;
+    std::unique_ptr<BoardComponent>    m_boardComponent;
+    std::unique_ptr<QueueComponent>    m_queueComponent;
+    std::unique_ptr<ProgressComponent> m_progressComponent;
 
-	/**
-	 * Subcomponent for displaying the player's score after each round.
-	 */
-	std::unique_ptr<ScoreWindow> m_scoreWindow;
+    std::unique_ptr<ScoreWindow>       m_scoreWindow;
 
-	/**
-	 * Number of timerCallback ticks until Ooze starts pumping out.
-	 */
-	int m_countDown = 0;
+    int m_countDown    = 0;
+    int m_maxCountDown = 0;
 
-	int m_blockInteraction = 0;
+    juce::CriticalSection m_lock;
 
-	juce::CriticalSection m_lock;
+    std::unique_ptr<juce::HyperlinkButton> m_hyperlink;
 
-	/**
-	 * Hyperlink to the project URL.
-	 */
-	std::unique_ptr<juce::HyperlinkButton> m_hyperlink;
-
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainComponent)
 };
