@@ -56,6 +56,12 @@
             file="Source/PipeDreamerAppConfiguration.h"/>
       <FILE id="PDCfC" name="PipeDreamerAppConfiguration.cpp" compile="1" resource="0"
             file="Source/PipeDreamerAppConfiguration.cpp"/>
+      <FILE id="AbCpH" name="AboutComponent.h" compile="0" resource="0"
+            file="Source/AboutComponent.h"/>
+      <FILE id="AbCpC" name="AboutComponent.cpp" compile="1" resource="0"
+            file="Source/AboutComponent.cpp"/>
+      <FILE id="CuPMH" name="CustomPopupMenuComponent.h" compile="0" resource="0"
+            file="Source/CustomPopupMenuComponent.h"/>
       <FILE id="OU2AVU" name="Main.cpp" compile="1" resource="0" file="Source/Main.cpp"/>
       <FILE id="cZECLC" name="MainComponent.cpp" compile="1" resource="0"
             file="Source/MainComponent.cpp"/>

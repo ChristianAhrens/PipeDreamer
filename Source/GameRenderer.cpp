@@ -111,12 +111,12 @@ void GameRenderer::DrawHeader(juce::Graphics& g)
     const int W = m_headerBounds.getWidth();
     const int H = m_headerBounds.getHeight();
 
-    // ---- Bombs: right-aligned, sized to ~40% of header height ----
+    // ---- Bombs: right-aligned, leaving room for the settings button (H × H square) ----
     Board* board         = controller->GetBoard();
     int bombDiameter     = juce::jlimit(10, H - 8, (H * 4) / 10);
     int bombStep         = bombDiameter + 4;
     int totalBombsW      = Board::MAX_NUM_BOMBS * bombStep - 4; // no trailing gap
-    int bombStartX       = W - totalBombsW - 12;
+    int bombStartX       = W - totalBombsW - H - 8; // H = settings button width
 
     for (int i = 0; i < Board::MAX_NUM_BOMBS; i++)
     {

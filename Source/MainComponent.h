@@ -37,6 +37,8 @@ SOFTWARE.
 #include "QueueComponent.h"
 #include "ProgressComponent.h"
 #include "PipeDreamerAppConfiguration.h"
+#include "AboutComponent.h"
+#include "CustomPopupMenuComponent.h"
 
 
 // ---- Forward declarations ----
@@ -81,6 +83,9 @@ public:
     void onConfigUpdated() override;
 
 private:
+    void showSettingsMenu();
+    void handleSettingsMenuResult(int result);
+
     std::unique_ptr<PipeDreamerAppConfiguration> m_config;
 
     std::unique_ptr<Controller>        m_controller;
@@ -89,6 +94,8 @@ private:
     std::unique_ptr<BoardComponent>    m_boardComponent;
     std::unique_ptr<QueueComponent>    m_queueComponent;
     std::unique_ptr<ProgressComponent> m_progressComponent;
+    std::unique_ptr<juce::TextButton>  m_settingsButton;
+    std::unique_ptr<AboutComponent>    m_aboutComponent;
 
     std::unique_ptr<ScoreWindow>       m_scoreWindow;
 
@@ -97,8 +104,6 @@ private:
     juce::Colour m_highlightColour{ 0xff0077cc }; // default: medium blue
 
     juce::CriticalSection m_lock;
-
-    std::unique_ptr<juce::HyperlinkButton> m_hyperlink;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainComponent)
 };

@@ -34,6 +34,23 @@ SOFTWARE.
 #include "ScoreWindow.h"
 
 
+// ---- File-local helpers ----
+
+// Renders the ⚙ glyph at 60% of button height so it fills the header square.
+struct GearButton final : public juce::TextButton
+{
+    GearButton() : juce::TextButton(juce::String::charToString(0x2699)) {}
+    void paint(juce::Graphics& g) override
+    {
+        if (isOver() || isDown())
+            g.fillAll(findColour(juce::TextButton::buttonOnColourId));
+        g.setColour(findColour(juce::TextButton::textColourOffId));
+        g.setFont(juce::Font(juce::FontOptions(static_cast<float>(getHeight()) * 0.6f)));
+        g.drawText(getButtonText(), getLocalBounds(), juce::Justification::centred);
+    }
+};
+
+
 // ---- Class Implementation ----
 
 MainComponent::MainComponent()
@@ -59,10 +76,12 @@ MainComponent::MainComponent()
     m_progressComponent = std::make_unique<ProgressComponent>();
     addAndMakeVisible(m_progressComponent.get());
 
-    m_hyperlink = std::make_unique<juce::HyperlinkButton>(
-        juce::String("https://github.com/escalonely/PipeDreamer"),
-        juce::URL("https://github.com/escalonely/PipeDreamer"));
-    addAndMakeVisible(m_hyperlink.get());
+    m_settingsButton = std::make_unique<GearButton>();
+    m_settingsButton->onClick = [this] { showSettingsMenu(); };
+    addAndMakeVisible(m_settingsButton.get());
+
+    m_aboutComponent = std::make_unique<AboutComponent>(
+        BinaryData::PipeDreamerCanvas_png, BinaryData::PipeDreamerCanvas_pngSize);
 
     setSize(Layout::WINDOW_DEFAULT_W, Layout::WINDOW_DEFAULT_H);
 
@@ -93,22 +112,18 @@ void MainComponent::resized()
 
     // ---- Fixed zone heights ----
     const int H_header   = std::max(40, H / 10);
-    const int H_footer   = std::max(28, H / 18);
     const int H_progress = std::max(50, H / 10);
 
-    // ---- Zone rectangles ----
+    // ---- Zone rectangles (no footer — info moved to About popup) ----
     juce::Rectangle<int> headerBounds(0, 0, W, H_header);
-    juce::Rectangle<int> contentBounds(0, H_header, W, H - H_header - H_progress - H_footer);
-    juce::Rectangle<int> progressBounds(0, H - H_footer - H_progress, W, H_progress);
-    juce::Rectangle<int> footerBounds(0, H - H_footer, W, H_footer);
+    juce::Rectangle<int> contentBounds(0, H_header, W, H - H_header - H_progress);
+    juce::Rectangle<int> progressBounds(0, H - H_progress, W, H_progress);
 
-    // ---- Progress + Footer ----
+    // ---- Settings button: square at top-right of header ----
+    m_settingsButton->setBounds(W - H_header, 0, H_header, H_header);
+
+    // ---- Progress ----
     m_progressComponent->setBounds(progressBounds);
-
-    auto versionFont = m_renderer.GetFont(GameRenderer::LABEL_VERSION);
-    auto textWidth   = juce::GlyphArrangement::getStringWidthInt(versionFont, m_hyperlink->getButtonText());
-    m_hyperlink->setFont(versionFont, false);
-    m_hyperlink->setBounds(footerBounds.withSizeKeepingCentre(textWidth + 8, footerBounds.getHeight()));
 
     // ---- Font ref bounds for GameRenderer ----
     juce::Rectangle<int> fontRefBounds = portrait
@@ -200,8 +215,12 @@ void MainComponent::paint(juce::Graphics& g)
 
 void MainComponent::lookAndFeelChanged()
 {
-    m_hyperlink->setColour(juce::HyperlinkButton::textColourId,
-                           findColour(juce::Label::textColourId).withAlpha(0.7f));
+    auto textColour = findColour(juce::Label::textColourId);
+    m_settingsButton->setColour(juce::TextButton::textColourOffId, textColour);
+    m_settingsButton->setColour(juce::TextButton::textColourOnId,  textColour);
+    m_settingsButton->setColour(juce::TextButton::buttonColourId,  juce::Colours::transparentBlack);
+    m_settingsButton->setColour(juce::TextButton::buttonOnColourId,
+                                findColour(juce::ResizableWindow::backgroundColourId).contrasting(0.1f));
     repaint();
 }
 
@@ -281,6 +300,72 @@ void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source)
         }
 
         m_scoreWindow = nullptr;
+    }
+}
+
+void MainComponent::showSettingsMenu()
+{
+    auto* laf = dynamic_cast<JUCEAppBasics::CustomLookAndFeel*>(
+        &juce::LookAndFeel::getDefaultLookAndFeel());
+    bool isDark = !laf || laf->getPaletteStyle() == JUCEAppBasics::CustomLookAndFeel::PS_Dark;
+
+    juce::PopupMenu appearanceMenu;
+    appearanceMenu.addItem(1, "Dark",  true, isDark);
+    appearanceMenu.addItem(2, "Light", true, !isDark);
+
+    juce::PopupMenu colourMenu;
+    colourMenu.addItem(3, "Blue",   true, m_highlightColour == juce::Colour(0xff0077cc));
+    colourMenu.addItem(4, "Green",  true, m_highlightColour == juce::Colour(0xff2a9d4f));
+    colourMenu.addItem(5, "Orange", true, m_highlightColour == juce::Colour(0xffff6600));
+    colourMenu.addItem(6, "Purple", true, m_highlightColour == juce::Colour(0xff7b2fbf));
+    colourMenu.addItem(7, "Red",    true, m_highlightColour == juce::Colour(0xffcc2222));
+
+    juce::PopupMenu menu;
+    menu.addSubMenu("Appearance",       appearanceMenu);
+    menu.addSubMenu("Highlight colour", colourMenu);
+    menu.addSeparator();
+    menu.addItem(10, "About...");
+
+    menu.showMenuAsync(juce::PopupMenu::Options()
+                           .withTargetComponent(m_settingsButton.get()),
+                       [this](int result) { handleSettingsMenuResult(result); });
+}
+
+void MainComponent::handleSettingsMenuResult(int result)
+{
+    auto* laf = dynamic_cast<JUCEAppBasics::CustomLookAndFeel*>(
+        &juce::LookAndFeel::getDefaultLookAndFeel());
+
+    switch (result)
+    {
+    case 1:
+        if (laf) laf->setPaletteStyle(JUCEAppBasics::CustomLookAndFeel::PS_Dark);
+        sendLookAndFeelChange();
+        m_config->triggerConfigurationDump();
+        break;
+    case 2:
+        if (laf) laf->setPaletteStyle(JUCEAppBasics::CustomLookAndFeel::PS_Light);
+        sendLookAndFeelChange();
+        m_config->triggerConfigurationDump();
+        break;
+    case 3: m_highlightColour = juce::Colour(0xff0077cc); m_config->triggerConfigurationDump(); break;
+    case 4: m_highlightColour = juce::Colour(0xff2a9d4f); m_config->triggerConfigurationDump(); break;
+    case 5: m_highlightColour = juce::Colour(0xffff6600); m_config->triggerConfigurationDump(); break;
+    case 6: m_highlightColour = juce::Colour(0xff7b2fbf); m_config->triggerConfigurationDump(); break;
+    case 7: m_highlightColour = juce::Colour(0xffcc2222); m_config->triggerConfigurationDump(); break;
+    case 10:
+        {
+            juce::PopupMenu aboutMenu;
+            aboutMenu.addCustomItem(1,
+                std::make_unique<CustomAboutItem>(
+                    m_aboutComponent.get(), juce::Rectangle<int>(250, 250)),
+                nullptr,
+                "About " + juce::JUCEApplication::getInstance()->getApplicationName());
+            aboutMenu.showMenuAsync(juce::PopupMenu::Options());
+        }
+        break;
+    default:
+        break;
     }
 }
 
