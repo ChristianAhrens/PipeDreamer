@@ -38,6 +38,16 @@ SOFTWARE.
 
 MainComponent::MainComponent()
 {
+    // Config must be created first so onConfigUpdated() can apply settings to the
+    // LookAndFeel before any UI is shown. Dumper is registered now; watcher is
+    // registered last (after full construction) to avoid calling virtual overrides
+    // before all members are initialised.
+    m_config = std::make_unique<PipeDreamerAppConfiguration>(
+        juce::File(PipeDreamerAppConfiguration::getDefaultConfigFilePath()));
+    if (!m_config->isValid())
+        m_config->ResetToDefault();
+    m_config->addDumper(this);
+
     m_controller = std::make_unique<Controller>();
 
     m_boardComponent = std::make_unique<BoardComponent>();
@@ -52,7 +62,6 @@ MainComponent::MainComponent()
     m_hyperlink = std::make_unique<juce::HyperlinkButton>(
         juce::String("https://github.com/escalonely/PipeDreamer"),
         juce::URL("https://github.com/escalonely/PipeDreamer"));
-    m_hyperlink->setColour(juce::HyperlinkButton::textColourId, juce::Colours::grey);
     addAndMakeVisible(m_hyperlink.get());
 
     setSize(Layout::WINDOW_DEFAULT_W, Layout::WINDOW_DEFAULT_H);
@@ -61,6 +70,10 @@ MainComponent::MainComponent()
     m_countDown    = m_maxCountDown;
     m_progressComponent->SetCountDown(m_countDown, m_maxCountDown);
     startTimer(Layout::GUI_REFRESH_RATE);
+
+    // Register watcher and apply persisted settings now that all members exist.
+    m_config->addWatcher(this, false);
+    onConfigUpdated();
 }
 
 MainComponent::~MainComponent()
@@ -181,8 +194,15 @@ void MainComponent::resized()
 
 void MainComponent::paint(juce::Graphics& g)
 {
-    g.fillAll(juce::Colour(67, 67, 67));
+    g.fillAll(findColour(juce::ResizableWindow::backgroundColourId));
     m_renderer.Render(g);
+}
+
+void MainComponent::lookAndFeelChanged()
+{
+    m_hyperlink->setColour(juce::HyperlinkButton::textColourId,
+                           findColour(juce::Label::textColourId).withAlpha(0.7f));
+    repaint();
 }
 
 void MainComponent::timerCallback()
@@ -262,4 +282,46 @@ void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source)
 
         m_scoreWindow = nullptr;
     }
+}
+
+void MainComponent::performConfigurationDump()
+{
+    auto* laf = dynamic_cast<JUCEAppBasics::CustomLookAndFeel*>(
+        &juce::LookAndFeel::getDefaultLookAndFeel());
+
+    int paletteIndex = 0;
+    if (laf)
+        paletteIndex = (laf->getPaletteStyle() == JUCEAppBasics::CustomLookAndFeel::PS_Light) ? 1 : 0;
+
+    auto lafXml = std::make_unique<juce::XmlElement>(
+        PipeDreamerAppConfiguration::getTagName(PipeDreamerAppConfiguration::LOOKANDFEEL));
+    lafXml->addTextElement(juce::String(paletteIndex));
+    m_config->setConfigState(std::move(lafXml));
+
+    auto colourXml = std::make_unique<juce::XmlElement>(
+        PipeDreamerAppConfiguration::getTagName(PipeDreamerAppConfiguration::HIGHLIGHTCOLOUR));
+    colourXml->addTextElement(m_highlightColour.toString());
+    m_config->setConfigState(std::move(colourXml));
+}
+
+void MainComponent::onConfigUpdated()
+{
+    auto* laf = dynamic_cast<JUCEAppBasics::CustomLookAndFeel*>(
+        &juce::LookAndFeel::getDefaultLookAndFeel());
+
+    auto lafXml = m_config->getConfigState(
+        PipeDreamerAppConfiguration::getTagName(PipeDreamerAppConfiguration::LOOKANDFEEL));
+    if (lafXml && laf)
+    {
+        int paletteIndex = lafXml->getAllSubText().getIntValue();
+        laf->setPaletteStyle(paletteIndex == 1
+            ? JUCEAppBasics::CustomLookAndFeel::PS_Light
+            : JUCEAppBasics::CustomLookAndFeel::PS_Dark);
+        sendLookAndFeelChange(); // propagates to all child components
+    }
+
+    auto colourXml = m_config->getConfigState(
+        PipeDreamerAppConfiguration::getTagName(PipeDreamerAppConfiguration::HIGHLIGHTCOLOUR));
+    if (colourXml)
+        m_highlightColour = juce::Colour::fromString(colourXml->getAllSubText());
 }

@@ -145,6 +145,10 @@ void GameRenderer::DrawHeader(juce::Graphics& g)
     const int medGap   = 16;
     int x = 12; // left margin
 
+    // Use the active LookAndFeel's label colour so it adapts to dark/light mode.
+    const juce::Colour labelColour =
+        juce::LookAndFeel::getDefaultLookAndFeel().findColour(juce::Label::textColourId);
+
     auto drawItem = [&](const juce::String& text, juce::Font font, juce::Colour colour)
     {
         int textW = juce::GlyphArrangement::getStringWidthInt(font, text) + 4;
@@ -158,7 +162,7 @@ void GameRenderer::DrawHeader(juce::Graphics& g)
 
     drawItem("Level:",
              plainFont,
-             juce::Colours::grey);
+             labelColour);
     x += smallGap;
 
     drawItem(juce::String(controller->GetDifficultyLevel()),
@@ -168,10 +172,10 @@ void GameRenderer::DrawHeader(juce::Graphics& g)
 
     drawItem("Score:",
              plainFont,
-             juce::Colours::grey);
+             labelColour);
     x += smallGap;
 
     drawItem(juce::String(playerScore),
              thresholdReached ? boldFont : plainFont,
-             thresholdReached ? juce::Colours::yellow : juce::Colours::grey);
+             thresholdReached ? juce::Colours::yellow : labelColour);
 }

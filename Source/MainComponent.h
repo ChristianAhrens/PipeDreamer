@@ -31,10 +31,12 @@ SOFTWARE.
 #pragma once
 
 #include <JuceHeader.h>
+#include <CustomLookAndFeel.h>
 #include "GameRenderer.h"
 #include "BoardComponent.h"
 #include "QueueComponent.h"
 #include "ProgressComponent.h"
+#include "PipeDreamerAppConfiguration.h"
 
 
 // ---- Forward declarations ----
@@ -49,10 +51,15 @@ class ScoreWindow;
  * Root GUI component that occupies the entire game window.
  * Divides the window into four horizontal zones (header, content, progress, footer)
  * and positions child components within them for both landscape and portrait modes.
+ *
+ * Implements PipeDreamerAppConfiguration::Dumper/Watcher to persist and restore
+ * appearance settings (palette style, highlight colour) across sessions.
  */
 class MainComponent : public juce::Component,
                       public juce::Timer,
-                      public juce::ChangeListener
+                      public juce::ChangeListener,
+                      public PipeDreamerAppConfiguration::Dumper,
+                      public PipeDreamerAppConfiguration::Watcher
 {
 public:
     MainComponent();
@@ -63,10 +70,19 @@ public:
 
     void paint(juce::Graphics&) override;
     void resized() override;
+    void lookAndFeelChanged() override;
     void timerCallback() override;
     void changeListenerCallback(juce::ChangeBroadcaster* source) override;
 
+    // PipeDreamerAppConfiguration::Dumper
+    void performConfigurationDump() override;
+
+    // PipeDreamerAppConfiguration::Watcher
+    void onConfigUpdated() override;
+
 private:
+    std::unique_ptr<PipeDreamerAppConfiguration> m_config;
+
     std::unique_ptr<Controller>        m_controller;
     GameRenderer                       m_renderer;
 
@@ -76,8 +92,9 @@ private:
 
     std::unique_ptr<ScoreWindow>       m_scoreWindow;
 
-    int m_countDown    = 0;
-    int m_maxCountDown = 0;
+    int          m_countDown      = 0;
+    int          m_maxCountDown   = 0;
+    juce::Colour m_highlightColour{ 0xff0077cc }; // default: medium blue
 
     juce::CriticalSection m_lock;
 

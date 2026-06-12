@@ -31,6 +31,7 @@ SOFTWARE.
 #include <JuceHeader.h>
 #include "LayoutConstants.h"
 #include "MainComponent.h"
+#include <CustomLookAndFeel.h>
 
 
 /**
@@ -81,8 +82,8 @@ public:
 	{
 		(void)commandLine;
 
-		// TODO: think about useful commandline options
-		// i.e.: starting level.
+		m_lookAndFeel = std::make_unique<JUCEAppBasics::CustomLookAndFeel>(JUCEAppBasics::CustomLookAndFeel::PS_Dark);
+		juce::LookAndFeel::setDefaultLookAndFeel(m_lookAndFeel.get());
 
 		m_mainWindow.reset(new MainWindow(getApplicationName()));
 	}
@@ -93,8 +94,9 @@ public:
 	 */
 	void shutdown() override
 	{
-		// This deletes the unique_ptr, which destroys MainComponent and its owned Controller.
 		m_mainWindow = nullptr;
+		juce::LookAndFeel::setDefaultLookAndFeel(nullptr);
+		m_lookAndFeel = nullptr;
 	}
 
 	/**
@@ -124,7 +126,10 @@ public:
 		 * Class constructor.
 		 */
 		MainWindow(juce::String name)
-			: DocumentWindow(name, juce::Colours::black, DocumentWindow::allButtons)
+			: DocumentWindow(name,
+			                 juce::LookAndFeel::getDefaultLookAndFeel()
+			                     .findColour(juce::ResizableWindow::backgroundColourId),
+			                 DocumentWindow::allButtons)
 		{
 			setUsingNativeTitleBar(true);
 			setContentOwned(new MainComponent(), true);
@@ -155,10 +160,8 @@ public:
 	};
 
 private:
-	/**
-	 * Pointer to MainWindow instance.
-	 */
-	std::unique_ptr<MainWindow> m_mainWindow;
+	std::unique_ptr<JUCEAppBasics::CustomLookAndFeel> m_lookAndFeel;
+	std::unique_ptr<MainWindow>                       m_mainWindow;
 };
 
 /**
