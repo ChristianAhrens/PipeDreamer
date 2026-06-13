@@ -34,21 +34,6 @@ SOFTWARE.
 #include "ScoreWindow.h"
 
 
-// ---- File-local helpers ----
-
-// Renders the ⚙ glyph at 60% of button height so it fills the header square.
-struct GearButton final : public juce::TextButton
-{
-    GearButton() : juce::TextButton(juce::String::charToString(0x2699)) {}
-    void paint(juce::Graphics& g) override
-    {
-        if (isOver() || isDown())
-            g.fillAll(findColour(juce::TextButton::buttonOnColourId));
-        g.setColour(findColour(juce::TextButton::textColourOffId));
-        g.setFont(juce::Font(juce::FontOptions(static_cast<float>(getHeight()) * 0.6f)));
-        g.drawText(getButtonText(), getLocalBounds(), juce::Justification::centred);
-    }
-};
 
 
 // ---- Class Implementation ----
@@ -76,7 +61,13 @@ MainComponent::MainComponent()
     m_progressComponent = std::make_unique<ProgressComponent>();
     addAndMakeVisible(m_progressComponent.get());
 
-    m_settingsButton = std::make_unique<GearButton>();
+    m_settingsButton = std::make_unique<juce::DrawableButton>(
+        "Settings", juce::DrawableButton::ButtonStyle::ImageFitted);
+    m_settingsButton->setTooltip("Settings");
+    m_settingsButton->setColour(juce::DrawableButton::ColourIds::backgroundColourId,
+                                juce::Colours::transparentBlack);
+    m_settingsButton->setColour(juce::DrawableButton::ColourIds::backgroundOnColourId,
+                                juce::Colours::transparentBlack);
     m_settingsButton->onClick = [this] { showSettingsMenu(); };
     addAndMakeVisible(m_settingsButton.get());
 
@@ -95,10 +86,13 @@ MainComponent::MainComponent()
     onConfigUpdated();
 
     JUCEAppBasics::iOS_utils::initialise([this] { resized(); });
+    juce::Desktop::getInstance().addDarkModeSettingListener(this);
+    darkModeSettingChanged(); // apply system palette immediately if in automatic mode
 }
 
 MainComponent::~MainComponent()
 {
+    juce::Desktop::getInstance().removeDarkModeSettingListener(this);
     JUCEAppBasics::iOS_utils::deinitialise();
 }
 
@@ -133,8 +127,12 @@ void MainComponent::resized()
     juce::Rectangle<int> contentBounds (X, Y + H_header,             W, H - H_header - H_progress);
     juce::Rectangle<int> progressBounds(X, Y + H - H_progress,       W, H_progress);
 
-    // ---- Settings button: square at top-right of header ----
-    m_settingsButton->setBounds(X + W - H_header, Y, H_header, H_header);
+    // ---- Settings button: square at top-right of header, slightly inset ----
+    {
+        const int btnSize   = H_header * 3 / 4;
+        const int btnMargin = (H_header - btnSize) / 2;
+        m_settingsButton->setBounds(X + W - H_header + btnMargin, Y + btnMargin, btnSize, btnSize);
+    }
 
     // ---- Progress ----
     m_progressComponent->setBounds(progressBounds);
@@ -229,13 +227,34 @@ void MainComponent::paint(juce::Graphics& g)
 
 void MainComponent::lookAndFeelChanged()
 {
-    auto textColour = findColour(juce::Label::textColourId);
-    m_settingsButton->setColour(juce::TextButton::textColourOffId, textColour);
-    m_settingsButton->setColour(juce::TextButton::textColourOnId,  textColour);
-    m_settingsButton->setColour(juce::TextButton::buttonColourId,  juce::Colours::transparentBlack);
-    m_settingsButton->setColour(juce::TextButton::buttonOnColourId,
-                                findColour(juce::ResizableWindow::backgroundColourId).contrasting(0.1f));
+    // Reload the settings SVG with the current LookAndFeel's text colour.
+    auto svgXml = juce::XmlDocument::parse(
+        juce::String::fromUTF8(BinaryData::settings_24dp_svg, BinaryData::settings_24dp_svgSize));
+    if (svgXml)
+    {
+        auto drawable = juce::Drawable::createFromSVG(*svgXml);
+        if (drawable)
+        {
+            drawable->replaceColour(juce::Colours::black,
+                                    findColour(juce::TextButton::ColourIds::textColourOnId));
+            m_settingsButton->setImages(drawable.get());
+        }
+    }
     repaint();
+}
+
+void MainComponent::darkModeSettingChanged()
+{
+    if (!m_followSystemStyle)
+        return;
+
+    auto* laf = dynamic_cast<JUCEAppBasics::CustomLookAndFeel*>(
+        &juce::LookAndFeel::getDefaultLookAndFeel());
+    if (laf)
+        laf->setPaletteStyle(juce::Desktop::getInstance().isDarkModeActive()
+            ? JUCEAppBasics::CustomLookAndFeel::PS_Dark
+            : JUCEAppBasics::CustomLookAndFeel::PS_Light);
+    sendLookAndFeelChange();
 }
 
 void MainComponent::timerCallback()
@@ -317,22 +336,34 @@ void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source)
     }
 }
 
+void MainComponent::applyHighlightColour()
+{
+    auto* laf = dynamic_cast<JUCEAppBasics::CustomLookAndFeel*>(
+        &juce::LookAndFeel::getDefaultLookAndFeel());
+    if (laf)
+        laf->setColour(GameRenderer::pipeOozeColourId, m_highlightColour);
+    sendLookAndFeelChange();
+    m_config->triggerConfigurationDump();
+}
+
 void MainComponent::showSettingsMenu()
 {
     auto* laf = dynamic_cast<JUCEAppBasics::CustomLookAndFeel*>(
         &juce::LookAndFeel::getDefaultLookAndFeel());
-    bool isDark = !laf || laf->getPaletteStyle() == JUCEAppBasics::CustomLookAndFeel::PS_Dark;
+    bool isDark  = !laf || laf->getPaletteStyle() == JUCEAppBasics::CustomLookAndFeel::PS_Dark;
+    bool isLight = laf  && laf->getPaletteStyle() == JUCEAppBasics::CustomLookAndFeel::PS_Light;
 
     juce::PopupMenu appearanceMenu;
-    appearanceMenu.addItem(1, "Dark",  true, isDark);
-    appearanceMenu.addItem(2, "Light", true, !isDark);
+    appearanceMenu.addItem(1, "Follow System", true, m_followSystemStyle);
+    appearanceMenu.addItem(2, "Dark",          true, !m_followSystemStyle && isDark);
+    appearanceMenu.addItem(3, "Light",         true, !m_followSystemStyle && isLight);
 
     juce::PopupMenu colourMenu;
-    colourMenu.addItem(3, "Blue",   true, m_highlightColour == juce::Colour(0xff0077cc));
-    colourMenu.addItem(4, "Green",  true, m_highlightColour == juce::Colour(0xff2a9d4f));
-    colourMenu.addItem(5, "Orange", true, m_highlightColour == juce::Colour(0xffff6600));
-    colourMenu.addItem(6, "Purple", true, m_highlightColour == juce::Colour(0xff7b2fbf));
-    colourMenu.addItem(7, "Red",    true, m_highlightColour == juce::Colour(0xffcc2222));
+    colourMenu.addItem(11, "Green",     true, m_highlightColour == juce::Colours::forestgreen);
+    colourMenu.addItem(12, "Red",       true, m_highlightColour == juce::Colours::orangered);
+    colourMenu.addItem(13, "Blue",      true, m_highlightColour == juce::Colours::dodgerblue);
+    colourMenu.addItem(14, "Anni Pink", true, m_highlightColour == juce::Colours::deeppink);
+    colourMenu.addItem(15, "Laser",     true, m_highlightColour == juce::Colour(0xd1, 0xff, 0x4f));
 
     juce::PopupMenu menu;
     menu.addSubMenu("Appearance",       appearanceMenu);
@@ -352,21 +383,28 @@ void MainComponent::handleSettingsMenuResult(int result)
 
     switch (result)
     {
-    case 1:
+    case 1: // Follow System
+        m_followSystemStyle = true;
+        darkModeSettingChanged(); // apply immediately
+        m_config->triggerConfigurationDump();
+        break;
+    case 2: // Dark
+        m_followSystemStyle = false;
         if (laf) laf->setPaletteStyle(JUCEAppBasics::CustomLookAndFeel::PS_Dark);
         sendLookAndFeelChange();
         m_config->triggerConfigurationDump();
         break;
-    case 2:
+    case 3: // Light
+        m_followSystemStyle = false;
         if (laf) laf->setPaletteStyle(JUCEAppBasics::CustomLookAndFeel::PS_Light);
         sendLookAndFeelChange();
         m_config->triggerConfigurationDump();
         break;
-    case 3: m_highlightColour = juce::Colour(0xff0077cc); m_config->triggerConfigurationDump(); break;
-    case 4: m_highlightColour = juce::Colour(0xff2a9d4f); m_config->triggerConfigurationDump(); break;
-    case 5: m_highlightColour = juce::Colour(0xffff6600); m_config->triggerConfigurationDump(); break;
-    case 6: m_highlightColour = juce::Colour(0xff7b2fbf); m_config->triggerConfigurationDump(); break;
-    case 7: m_highlightColour = juce::Colour(0xffcc2222); m_config->triggerConfigurationDump(); break;
+    case 11: m_highlightColour = juce::Colours::forestgreen;              applyHighlightColour(); break;
+    case 12: m_highlightColour = juce::Colours::orangered;                applyHighlightColour(); break;
+    case 13: m_highlightColour = juce::Colours::dodgerblue;               applyHighlightColour(); break;
+    case 14: m_highlightColour = juce::Colours::deeppink;                 applyHighlightColour(); break;
+    case 15: m_highlightColour = juce::Colour(0xd1, 0xff, 0x4f);         applyHighlightColour(); break;
     case 10:
         {
             juce::PopupMenu aboutMenu;
@@ -389,7 +427,9 @@ void MainComponent::performConfigurationDump()
         &juce::LookAndFeel::getDefaultLookAndFeel());
 
     int paletteIndex = 0;
-    if (laf)
+    if (m_followSystemStyle)
+        paletteIndex = 2;
+    else if (laf)
         paletteIndex = (laf->getPaletteStyle() == JUCEAppBasics::CustomLookAndFeel::PS_Light) ? 1 : 0;
 
     auto lafXml = std::make_unique<juce::XmlElement>(
@@ -413,14 +453,29 @@ void MainComponent::onConfigUpdated()
     if (lafXml && laf)
     {
         int paletteIndex = lafXml->getAllSubText().getIntValue();
-        laf->setPaletteStyle(paletteIndex == 1
-            ? JUCEAppBasics::CustomLookAndFeel::PS_Light
-            : JUCEAppBasics::CustomLookAndFeel::PS_Dark);
-        sendLookAndFeelChange(); // propagates to all child components
+        if (paletteIndex == 2)
+        {
+            m_followSystemStyle = true;
+            laf->setPaletteStyle(juce::Desktop::getInstance().isDarkModeActive()
+                ? JUCEAppBasics::CustomLookAndFeel::PS_Dark
+                : JUCEAppBasics::CustomLookAndFeel::PS_Light);
+        }
+        else
+        {
+            m_followSystemStyle = false;
+            laf->setPaletteStyle(paletteIndex == 1
+                ? JUCEAppBasics::CustomLookAndFeel::PS_Light
+                : JUCEAppBasics::CustomLookAndFeel::PS_Dark);
+        }
+        sendLookAndFeelChange();
     }
 
     auto colourXml = m_config->getConfigState(
         PipeDreamerAppConfiguration::getTagName(PipeDreamerAppConfiguration::HIGHLIGHTCOLOUR));
     if (colourXml)
         m_highlightColour = juce::Colour::fromString(colourXml->getAllSubText());
+
+    if (laf)
+        laf->setColour(GameRenderer::pipeOozeColourId, m_highlightColour);
+    sendLookAndFeelChange();
 }

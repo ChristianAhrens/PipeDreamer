@@ -20,6 +20,8 @@
               file="Resources/Images/PipeDreamerCanvas.png" xcodeResource="1"/>
         <FILE id="NS77X1" name="PipeDreamerRect.png" compile="0" resource="1"
               file="Resources/Images/PipeDreamerRect.png" xcodeResource="1"/>
+        <FILE id="StgSVG" name="settings_24dp.svg" compile="0" resource="1"
+              file="submodules/JUCE-AppBasics/Resources/Images/settings_24dp.svg"/>
       </GROUP>
     </GROUP>
     <GROUP id="{66ABA4BA-CAD0-DDDA-65B0-2BFCC9FFE601}" name="Source">

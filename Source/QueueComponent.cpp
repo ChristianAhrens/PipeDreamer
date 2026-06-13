@@ -33,6 +33,7 @@ SOFTWARE.
 
 #include "QueueComponent.h"
 #include "BoardComponent.h"
+#include "GameRenderer.h"
 #include "Queue.h"
 #include "Controller.h"
 
@@ -75,7 +76,7 @@ void QueueComponent::paint(juce::Graphics& g)
 		if (i == 0)
 		{
 			// Highlight frame around the next-to-place tile.
-			g.setColour(juce::Colours::limegreen);
+			g.setColour(juce::LookAndFeel::getDefaultLookAndFeel().findColour(GameRenderer::pipeOozeColourId));
 			g.drawRect(p.getX() - 4, p.getY() - 4, T + 8, T + 8, 2);
 			g.setColour(juce::Colours::black);
 			g.drawRect(p.getX() - 6, p.getY() - 6, T + 12, T + 12, 2);

@@ -61,6 +61,7 @@ class ScoreWindow;
 class MainComponent : public juce::Component,
                       public juce::Timer,
                       public juce::ChangeListener,
+                      public juce::DarkModeSettingListener,
                       public PipeDreamerAppConfiguration::Dumper,
                       public PipeDreamerAppConfiguration::Watcher
 {
@@ -74,6 +75,7 @@ public:
     void paint(juce::Graphics&) override;
     void resized() override;
     void lookAndFeelChanged() override;
+    void darkModeSettingChanged() override;  // juce::Desktop::Listener
     void timerCallback() override;
     void changeListenerCallback(juce::ChangeBroadcaster* source) override;
 
@@ -86,6 +88,7 @@ public:
 private:
     void showSettingsMenu();
     void handleSettingsMenuResult(int result);
+    void applyHighlightColour();
 
     std::unique_ptr<PipeDreamerAppConfiguration> m_config;
 
@@ -95,14 +98,15 @@ private:
     std::unique_ptr<BoardComponent>    m_boardComponent;
     std::unique_ptr<QueueComponent>    m_queueComponent;
     std::unique_ptr<ProgressComponent> m_progressComponent;
-    std::unique_ptr<juce::TextButton>  m_settingsButton;
+    std::unique_ptr<juce::DrawableButton> m_settingsButton;
     std::unique_ptr<AboutComponent>    m_aboutComponent;
 
     std::unique_ptr<ScoreWindow>       m_scoreWindow;
 
-    int          m_countDown      = 0;
-    int          m_maxCountDown   = 0;
-    juce::Colour m_highlightColour{ 0xff0077cc }; // default: medium blue
+    int          m_countDown        = 0;
+    int          m_maxCountDown     = 0;
+    juce::Colour m_highlightColour  { 0xff1e90ff }; // default: dodgerblue
+    bool         m_followSystemStyle = false;
 
     juce::CriticalSection m_lock;
 

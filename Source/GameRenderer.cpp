@@ -123,14 +123,18 @@ void GameRenderer::DrawHeader(juce::Graphics& g)
         juce::Rectangle<int> bombRect(bombStartX + i * bombStep,
                                       (H - bombDiameter) / 2,
                                       bombDiameter, bombDiameter);
+        const auto oozeColour = juce::LookAndFeel::getDefaultLookAndFeel()
+                                    .findColour(GameRenderer::pipeOozeColourId);
         if (i < board->GetNumBombs())
         {
-            g.setColour(juce::Colours::red);
+            g.setColour(oozeColour);
             g.fillEllipse(bombRect.toFloat());
         }
         else if (i == board->GetNumBombs())
         {
-            g.setColour(juce::Colour(static_cast<juce::uint8>(67 + board->GetPercentUntilFreeBomb()), 67, 67));
+            // Dim version that brightens as the next free bomb builds up.
+            float progress = board->GetPercentUntilFreeBomb() / 100.0f;
+            g.setColour(oozeColour.withAlpha(0.15f + 0.55f * progress));
             g.fillEllipse(bombRect.toFloat());
         }
         g.setColour(juce::Colours::white);

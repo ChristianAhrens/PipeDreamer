@@ -56,6 +56,14 @@ public:
         LABEL_VERSION       //< Small version / footer label.
     };
 
+    /** Colour IDs for game-specific elements. Set on the default LookAndFeel by
+     *  MainComponent::onConfigUpdated() so that BoardComponent, QueueComponent,
+     *  and ProgressComponent can all query the user-selected highlight colour. */
+    enum GameColourIds
+    {
+        pipeOozeColourId = 0x1a000001   //< Pipe ooze / progress fill — user's highlight colour.
+    };
+
     GameRenderer();
 
     /**

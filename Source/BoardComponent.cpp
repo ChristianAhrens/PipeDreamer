@@ -163,7 +163,14 @@ void BoardComponent::DrawTile(TilePiece* tile, juce::Point<int> origin, int tile
 	if (pipe == nullptr)
 		return;
 
-	g.setColour(GameRenderer::GetTileColourForLevel(Controller::GetInstance()->GetDifficultyLevel()));
+	auto tileColour = GameRenderer::GetTileColourForLevel(Controller::GetInstance()->GetDifficultyLevel());
+	// Shift tiles toward the window background in each mode for better contrast.
+	if (juce::LookAndFeel::getDefaultLookAndFeel()
+	        .findColour(juce::ResizableWindow::backgroundColourId).getBrightness() > 0.5f)
+	    tileColour = tileColour.brighter(0.3f);  // light mode → brighter tiles
+	else
+	    tileColour = tileColour.darker(0.2f);    // dark mode  → darker tiles
+	g.setColour(tileColour);
 	g.fillRect(origin.getX(), origin.getY(), tileSize, tileSize);
 
 	juce::Line<int> line;
@@ -299,7 +306,15 @@ void BoardComponent::DrawCrossSecondWay(TilePiece* tile, juce::Point<int> origin
 	g.drawLine(line.toFloat(), pipeThickness);
 
 	float littleLineThickness = (tileSize * Layout::CROSS_SEP_NUM) / Layout::CROSS_SEP_DEN;
-	g.setColour(GameRenderer::GetTileColourForLevel(Controller::GetInstance()->GetDifficultyLevel()));
+	{
+	    auto sepColour = GameRenderer::GetTileColourForLevel(Controller::GetInstance()->GetDifficultyLevel());
+	    if (juce::LookAndFeel::getDefaultLookAndFeel()
+	            .findColour(juce::ResizableWindow::backgroundColourId).getBrightness() > 0.5f)
+	        sepColour = sepColour.brighter(0.3f);
+	    else
+	        sepColour = sepColour.darker(0.2f);
+	    g.setColour(sepColour);
+	}
 
 	if (crossTile->GetBackgroundWay() == Cross::WAY_HORIZONTAL)
 	{
@@ -325,7 +340,7 @@ void BoardComponent::DrawCrossSecondWay(TilePiece* tile, juce::Point<int> origin
 	}
 
 	// Ooze on the second (foreground) channel.
-	g.setColour(juce::Colours::limegreen);
+	g.setColour(juce::LookAndFeel::getDefaultLookAndFeel().findColour(GameRenderer::pipeOozeColourId));
 	int fill;
 
 	if (crossTile->GetBackgroundWay() == Cross::WAY_HORIZONTAL)
@@ -361,7 +376,8 @@ void BoardComponent::DrawCrossSecondWay(TilePiece* tile, juce::Point<int> origin
 // static
 void BoardComponent::DrawTileDecoration(TilePiece* tile, juce::Point<int> origin, int tileSize, juce::Graphics& g)
 {
-	g.setColour(juce::Colours::white);
+	// Border colour adapts to LookAndFeel so it remains visible in both dark and light mode.
+	g.setColour(juce::LookAndFeel::getDefaultLookAndFeel().findColour(juce::Label::textColourId));
 	g.drawRect(origin.getX(), origin.getY(), tileSize, tileSize, 1);
 
 	if (tile->GetType() == TilePiece::TYPE_NONE)
@@ -382,8 +398,14 @@ void BoardComponent::DrawTileDecoration(TilePiece* tile, juce::Point<int> origin
 		                 static_cast<float>(exp * 4),
 		                 static_cast<float>(exp * 8),
 		                 static_cast<float>(exp * 2));
-		g.setColour(juce::Colours::orangered);
-		g.fillPath(starPath);
+		{
+		    auto starColour = juce::LookAndFeel::getDefaultLookAndFeel()
+		                          .findColour(GameRenderer::pipeOozeColourId);
+		    if (starColour.isTransparent() || starColour == juce::Colours::black)
+		        starColour = juce::Colours::white; // fallback if colour ID not registered
+		    g.setColour(starColour);
+		    g.fillPath(starPath);
+		}
 	}
 }
 
@@ -405,7 +427,7 @@ void BoardComponent::DrawOoze(TilePiece* tile, juce::Point<int> origin, int tile
 	int fill = static_cast<int>(tileSize * pipe->GetOozeLevel() / MAX_OOZE_LEVEL);
 
 	juce::Line<int> line;
-	g.setColour(juce::Colours::limegreen);
+	g.setColour(juce::LookAndFeel::getDefaultLookAndFeel().findColour(GameRenderer::pipeOozeColourId));
 
 	int halfTile = tileSize / 2;
 	juce::Rectangle<float> elbowJoint(
@@ -715,8 +737,10 @@ void BoardComponent::DrawSpill(juce::Point<int> origin, int tileSize, juce::Grap
 		return;
 	}
 
-	g.setColour(juce::Colour(0x88008000));
+	const auto oozeColour = juce::LookAndFeel::getDefaultLookAndFeel()
+	                            .findColour(GameRenderer::pipeOozeColourId);
+	g.setColour(oozeColour.withAlpha(0.5f));
 	g.fillEllipse(bigRec.toFloat());
-	g.setColour(juce::Colours::limegreen);
+	g.setColour(oozeColour);
 	g.fillEllipse(smlRec.toFloat());
 }

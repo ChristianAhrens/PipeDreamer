@@ -33,6 +33,7 @@ SOFTWARE.
 
 #include "ProgressComponent.h"
 #include "LayoutConstants.h"
+#include "GameRenderer.h"
 #include "Board.h"
 #include "Controller.h"
 
@@ -74,7 +75,8 @@ void ProgressComponent::paint(juce::Graphics& g)
 
     int oozeMaxH = vialH - Layout::OOZE_VIAL_PADDING * 2;
     int oozeH    = 0;
-    juce::Colour oozeColour = juce::Colours::limegreen;
+    juce::Colour oozeColour = juce::LookAndFeel::getDefaultLookAndFeel()
+                                   .findColour(GameRenderer::pipeOozeColourId);
 
     Board* board = Controller::GetInstance()->GetBoard();
     if (m_countDown > 0)
