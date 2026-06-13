@@ -93,10 +93,13 @@ MainComponent::MainComponent()
     // Register watcher and apply persisted settings now that all members exist.
     m_config->addWatcher(this, false);
     onConfigUpdated();
+
+    JUCEAppBasics::iOS_utils::initialise([this] { resized(); });
 }
 
 MainComponent::~MainComponent()
 {
+    JUCEAppBasics::iOS_utils::deinitialise();
 }
 
 int MainComponent::GetTileSize() const
@@ -106,21 +109,32 @@ int MainComponent::GetTileSize() const
 
 void MainComponent::resized()
 {
-    const int W = getWidth();
-    const int H = getHeight();
+    // Trim the available area by the device safe-area insets (notch, home indicator,
+    // Dynamic Island, Stage Manager, etc.). On non-iOS platforms the margins are zero.
+    auto safety = JUCEAppBasics::iOS_utils::getDeviceSafetyMargins();
+    auto safe   = getLocalBounds()
+                    .withTrimmedTop   (safety._top)
+                    .withTrimmedBottom(safety._bottom)
+                    .withTrimmedLeft  (safety._left)
+                    .withTrimmedRight (safety._right);
+
+    const int W = safe.getWidth();
+    const int H = safe.getHeight();
+    const int X = safe.getX(); // left inset offset
+    const int Y = safe.getY(); // top inset offset
     const bool portrait = H > W;
 
     // ---- Fixed zone heights ----
     const int H_header   = std::max(40, H / 10);
     const int H_progress = std::max(50, H / 10);
 
-    // ---- Zone rectangles (no footer — info moved to About popup) ----
-    juce::Rectangle<int> headerBounds(0, 0, W, H_header);
-    juce::Rectangle<int> contentBounds(0, H_header, W, H - H_header - H_progress);
-    juce::Rectangle<int> progressBounds(0, H - H_progress, W, H_progress);
+    // ---- Zone rectangles (offset by safe-area origin) ----
+    juce::Rectangle<int> headerBounds  (X, Y,                        W, H_header);
+    juce::Rectangle<int> contentBounds (X, Y + H_header,             W, H - H_header - H_progress);
+    juce::Rectangle<int> progressBounds(X, Y + H - H_progress,       W, H_progress);
 
     // ---- Settings button: square at top-right of header ----
-    m_settingsButton->setBounds(W - H_header, 0, H_header, H_header);
+    m_settingsButton->setBounds(X + W - H_header, Y, H_header, H_header);
 
     // ---- Progress ----
     m_progressComponent->setBounds(progressBounds);
@@ -153,7 +167,7 @@ void MainComponent::resized()
         // Exact pixel area for a grid with 1px shared borders: N*T - (N-1)
         const int boardW = 10 * T - 9;
         const int boardH = 7 * T - 6;
-        const int boardX = sidebarW + (boardAreaW - boardW) / 2;
+        const int boardX = X + sidebarW + (boardAreaW - boardW) / 2;
         const int boardY = cY + (cH - boardH) / 2;
 
         m_boardComponent->setBounds(boardX, boardY, boardW, boardH);
@@ -161,7 +175,7 @@ void MainComponent::resized()
 
         const int queueW = T;
         const int queueH = 5 * T - 4;  // exact pixel area for 5-tile column
-        const int queueX = (sidebarW - queueW) / 2;
+        const int queueX = X + (sidebarW - queueW) / 2;
         const int queueY = cY + (cH - queueH) / 2;
 
         m_queueComponent->setBounds(queueX, queueY, queueW, queueH);
@@ -183,7 +197,7 @@ void MainComponent::resized()
 
         const int boardVisualW = 7 * T - 6;
         const int boardVisualH = 10 * T - 9;
-        const int boardX       = (W - boardVisualW) / 2; // centred horizontally
+        const int boardX       = X + (W - boardVisualW) / 2; // centred in safe area
 
         // rotation(+π/2).translated(boardVisualW + boardX, cY) maps the component's
         // logical (0, 7T-6) to the visual top-left (boardX, cY). Verified:
@@ -195,7 +209,7 @@ void MainComponent::resized()
 
         const int queueW = 5 * T - 4;  // exact pixel area for 5-tile row
         const int queueH = T;
-        const int queueX = (W - queueW) / 2;
+        const int queueX = X + (W - queueW) / 2;
         const int queueY = cY + boardVisualH + gap;
 
         m_queueComponent->setBounds(queueX, queueY, queueW, queueH);

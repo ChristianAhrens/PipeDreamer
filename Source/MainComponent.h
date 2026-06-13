@@ -32,6 +32,7 @@ SOFTWARE.
 
 #include <JuceHeader.h>
 #include <CustomLookAndFeel.h>
+#include <iOS_utils.h>
 #include "GameRenderer.h"
 #include "BoardComponent.h"
 #include "QueueComponent.h"
