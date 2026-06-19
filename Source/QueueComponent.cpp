@@ -69,9 +69,24 @@ void QueueComponent::paint(juce::Graphics& g)
 			p = juce::Point<int>(0, (queueSize - 1 - i) * (T - 1));
 		}
 
+		// In portrait (horizontal) mode the board component is rotated 90° CW,
+		// so counter-rotate each tile's drawing by the same amount so the queue
+		// preview matches the tile's visual orientation when placed on the board.
+		if (horizontal)
+		{
+			g.saveState();
+			float cx = static_cast<float>(p.getX() + T / 2);
+			float cy = static_cast<float>(p.getY() + T / 2);
+			g.addTransform(juce::AffineTransform::rotation(
+				juce::MathConstants<float>::halfPi, cx, cy));
+		}
+
 		BoardComponent::DrawTile(queue->GetTile(i), p, T, g);
 		BoardComponent::DrawCrossSecondWay(queue->GetTile(i), p, T, g);
 		BoardComponent::DrawTileDecoration(queue->GetTile(i), p, T, g);
+
+		if (horizontal)
+			g.restoreState();
 
 		if (i == 0)
 		{
