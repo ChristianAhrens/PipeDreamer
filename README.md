@@ -8,7 +8,7 @@ PipeDreamer is a hobby project, is currently in development, and probably contai
 
 The objective of PipeDreamer is to build a **Pipeline** that will allow the green **Ooze** to flow for as long as possible.
 
-![GuiAnnotated2.png](Images/GuiAnnotated2.png "Game GUI overview")
+![GuiAnnotated2.png](Resources/Documentation/GuiAnnotated2.png "Game GUI overview")
 
 ### Game Grid
 
@@ -48,6 +48,6 @@ The objective of PipeDreamer is to build a **Pipeline** that will allow the gree
 
 * This button can be toggled on and off in order to make the **Ooze** flow faster.
 
-![GuiAnnotated4.png](Images/GuiAnnotated4.png "Progress GUI overview")
+![GuiAnnotated4.png](Resources/Documentation/GuiAnnotated4.png "Progress GUI overview")
 
 ### Have fun!

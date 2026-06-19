@@ -66,7 +66,7 @@ bool PipeDreamerAppConfiguration::ResetToDefault()
     lafXml->addTextElement("0");
 
     auto* colourXml = root->createNewChildElement(getTagName(HIGHLIGHTCOLOUR));
-    colourXml->addTextElement("ff1e90ff"); // dodgerblue
+    colourXml->addTextElement("ffff1493"); // deeppink (Anni Pink)
 
     return resetConfigState(std::move(root));
 }

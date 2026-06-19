@@ -105,7 +105,7 @@ private:
 
     int          m_countDown        = 0;
     int          m_maxCountDown     = 0;
-    juce::Colour m_highlightColour  { 0xff1e90ff }; // default: dodgerblue
+    juce::Colour m_highlightColour  { 0xffff1493 }; // default: deeppink (Anni Pink)
     bool         m_followSystemStyle = false;
 
     juce::CriticalSection m_lock;

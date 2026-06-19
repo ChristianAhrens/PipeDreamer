@@ -72,7 +72,7 @@ MainComponent::MainComponent()
     addAndMakeVisible(m_settingsButton.get());
 
     m_aboutComponent = std::make_unique<AboutComponent>(
-        BinaryData::PipeDreamerCanvas_png, BinaryData::PipeDreamerCanvas_pngSize);
+        BinaryData::PipeDreamerRect_png, BinaryData::PipeDreamerRect_pngSize);
 
     setSize(Layout::WINDOW_DEFAULT_W, Layout::WINDOW_DEFAULT_H);
 
@@ -372,7 +372,8 @@ void MainComponent::showSettingsMenu()
     menu.addItem(10, "About...");
 
     menu.showMenuAsync(juce::PopupMenu::Options()
-                           .withTargetComponent(m_settingsButton.get()),
+                           .withTargetComponent(m_settingsButton.get())
+                           .withStandardItemHeight(32),
                        [this](int result) { handleSettingsMenuResult(result); });
 }
 
