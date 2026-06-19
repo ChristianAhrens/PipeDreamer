@@ -141,7 +141,8 @@
         <MODULEPATH id="juce_audio_basics" path="submodules/JUCE/modules"/>
       </MODULEPATHS>
     </XCODE_MAC>
-    <XCODE_IPHONE targetFolder="Builds/iOS" smallIcon="NS77X1" bigIcon="NS77X1"
+    <XCODE_IPHONE targetFolder="Builds/iOS" customLaunchStoryboard="Resources/Deployment/iOS/LaunchScreen.storyboard"
+                  smallIcon="NS77X1" bigIcon="NS77X1"
                   iosScreenOrientation="UIInterfaceOrientationLandscapeLeft,UIInterfaceOrientationLandscapeRight,UIInterfaceOrientationPortrait,UIInterfaceOrientationPortraitUpsideDown"
                   iPadScreenOrientation="UIInterfaceOrientationLandscapeLeft,UIInterfaceOrientationLandscapeRight,UIInterfaceOrientationPortrait,UIInterfaceOrientationPortraitUpsideDown"
                   iosDevelopmentTeamID="SB7Q3PP4FQ" UIStatusBarHidden="1" iconComposerIcon="lm7JrB">
