@@ -221,7 +221,7 @@ void MainComponent::resized()
 
 void MainComponent::paint(juce::Graphics& g)
 {
-    g.fillAll(findColour(juce::ResizableWindow::backgroundColourId));
+    g.fillAll(findColour(juce::Slider::backgroundColourId));
     m_renderer.Render(g);
 }
 

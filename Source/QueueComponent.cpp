@@ -46,6 +46,8 @@ QueueComponent::QueueComponent()
 
 void QueueComponent::paint(juce::Graphics& g)
 {
+	g.fillAll(findColour(juce::ResizableWindow::backgroundColourId));
+
 	Queue* queue = Controller::GetInstance()->GetQueue();
 	int queueSize = queue->GetSize();
 

@@ -71,6 +71,8 @@ int BoardComponent::GetTileSize() const
 
 void BoardComponent::paint(juce::Graphics& g)
 {
+	g.fillAll(findColour(juce::ResizableWindow::backgroundColourId));
+
 	int T = std::min((getWidth() + 9) / 10, (getHeight() + 6) / 7);
 	m_tileSize = T;
 
