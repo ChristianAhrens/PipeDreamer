@@ -228,17 +228,13 @@ void MainComponent::paint(juce::Graphics& g)
 void MainComponent::lookAndFeelChanged()
 {
     // Reload the settings SVG with the current LookAndFeel's text colour.
-    auto svgXml = juce::XmlDocument::parse(
+    auto drawable = juce::Drawable::createFromSVGString(
         juce::String::fromUTF8(BinaryData::settings_24dp_svg, BinaryData::settings_24dp_svgSize));
-    if (svgXml)
+    if (drawable)
     {
-        auto drawable = juce::Drawable::createFromSVG(*svgXml);
-        if (drawable)
-        {
-            drawable->replaceColour(juce::Colours::black,
-                                    findColour(juce::TextButton::ColourIds::textColourOnId));
-            m_settingsButton->setImages(drawable.get());
-        }
+        drawable->replaceColour(juce::Colours::black,
+                                findColour(juce::TextButton::ColourIds::textColourOnId));
+        m_settingsButton->setImages(drawable.get());
     }
     repaint();
 }
